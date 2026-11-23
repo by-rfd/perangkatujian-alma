@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(ownerId) {
+      return isVerifiedUser() && request.auth.uid == ownerId;
+    }
+
+    function isValidWorkspace(data, workspaceId) {
+      return data.keys().hasAll([
+        'ownerId',
+        'school',
+        'committee',
+        'supervisors',
+        'tracks',
+        'examDays',
+        'supervisorSchedule',
+        'rules',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId',
+        'school',
+        'committee',
+        'supervisors',
+        'tracks',
+        'examDays',
+        'supervisorSchedule',
+        'rules',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.ownerId is string
+      && data.ownerId == request.auth.uid
+      && data.ownerId == workspaceId
+      && isValidId(data.ownerId)
+      && data.school is map
+      && data.school.namaSekolah is string
+      && data.school.namaSekolah.size() >= 1
+      && data.school.namaSekolah.size() <= 200
+      && data.committee is list
+      && data.committee.size() <= 100
+      && data.supervisors is list
+      && data.supervisors.size() <= 100
+      && data.tracks is list
+      && data.tracks.size() >= 1
+      && data.tracks.size() <= 20
+      && data.tracks[0] is string
+      && data.tracks[0].size() >= 1
+      && data.tracks[0].size() <= 40
+      && data.examDays is list
+      && data.examDays.size() <= 30
+      && data.supervisorSchedule is map
+      && data.rules is list
+      && data.rules.size() <= 50
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll([
+        'ownerId',
+        'noPeserta',
+        'name',
+        'nisn',
+        'kelas',
+        'ruang',
+        'orderIndex',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId',
+        'noPeserta',
+        'name',
+        'nisn',
+        'kelas',
+        'ruang',
+        'orderIndex',
+        'photoDataUrl',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.ownerId is string
+      && data.ownerId == request.auth.uid
+      && isValidId(data.ownerId)
+      && data.noPeserta is string
+      && data.noPeserta.size() <= 64
+      && data.name is string
+      && data.name.size() >= 1
+      && data.name.size() <= 120
+      && data.nisn is string
+      && data.nisn.size() <= 32
+      && data.kelas is string
+      && data.kelas.size() <= 32
+      && data.ruang is int
+      && data.ruang >= 1
+      && data.ruang <= 200
+      && data.orderIndex is int
+      && data.orderIndex >= 0
+      && data.orderIndex <= 10000
+      && (!data.keys().hasAny(['photoDataUrl']) || (data.photoDataUrl is string && data.photoDataUrl.size() <= 350000))
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    match /workspaces/{workspaceId} {
+      allow get: if isValidId(workspaceId) && isOwner(existing().ownerId);
+      allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
+
+      allow create: if isVerifiedUser()
+        && isValidId(workspaceId)
+        && isValidWorkspace(incoming(), workspaceId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(workspaceId)
+        && isOwner(existing().ownerId)
+        && isValidWorkspace(incoming(), workspaceId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'school',
+          'committee',
+          'supervisors',
+          'tracks',
+          'examDays',
+          'supervisorSchedule',
+          'rules',
+          'updatedAt'
+        ]);
+
+      allow delete: if isValidId(workspaceId) && isOwner(existing().ownerId);
+
+      match /students/{studentId} {
+        allow get: if isValidId(workspaceId)
+          && isValidId(studentId)
+          && isOwner(existing().ownerId)
+          && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+
+        allow list: if isValidId(workspaceId)
+          && isVerifiedUser()
+          && existing().ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(workspaceId)
+          && isValidId(studentId)
+          && isValidStudent(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+
+        allow update: if isVerifiedUser()
+          && isValidId(workspaceId)
+          && isValidId(studentId)
+          && isOwner(existing().ownerId)
+          && isValidStudent(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'noPeserta',
+            'name',
+            'nisn',
+            'kelas',
+            'ruang',
+            'orderIndex',
+            'photoDataUrl',
+            'updatedAt'
+          ])
+          && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+
+        allow delete: if isValidId(workspaceId)
+          && isValidId(studentId)
+          && isOwner(existing().ownerId)
+          && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+      }
+    }
+  }
+}

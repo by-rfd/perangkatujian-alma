@@ -1,0 +1,102 @@
+export type TabId =
+  | 'dashboard'
+  | 'data-sekolah'
+  | 'panitia'
+  | 'database'
+  | 'jadwal-ujian'
+  | 'jadwal-pengawas'
+  | 'denah'
+  | 'daftar-hadir-peserta'
+  | 'daftar-hadir-pengawas'
+  | 'kartu-ujian'
+  | 'kartu-panitia'
+  | 'tata-tertib'
+  | 'no-pintu'
+  | 'administrasi';
+
+export interface SchoolIdentity {
+  pemerintahDaerah: string;
+  namaInstansi: string;
+  namaSekolah: string;
+  singkatanSekolah: string;
+  alamat: string;
+  kecamatan: string;
+  kabupaten: string;
+  jenisUjian: string;
+  singkatanUjian: string;
+  semester: string;
+  tahunPelajaran: string;
+  ketuaPanitia: string;
+  nipKetua: string;
+  kepalaMadrasah: string;
+  nipKepala: string;
+  tanggalMulai: string; // YYYY-MM-DD
+  titimangsa: string;
+  prefixNoPeserta: string;
+  maxSiswaPerRuang: number;
+  jumlahRuang: number;
+  sosmedIg: string;
+  sosmedFb: string;
+  sosmedWa: string;
+  tahunSampul: string;
+  leftLogoDataUrl?: string;
+  rightLogoDataUrl?: string;
+  kataPengantar: string;
+}
+
+export interface CommitteeMember {
+  id: string;
+  name: string;
+  role: string;
+  photoDataUrl?: string;
+}
+
+export interface Supervisor {
+  id: string;
+  code: number;
+  name: string;
+  color: string;
+}
+
+export interface Student {
+  id: string;
+  noPeserta: string;
+  name: string;
+  nisn: string;
+  kelas: string;
+  ruang: number;
+  photoDataUrl?: string;
+}
+
+export interface ExamSession {
+  id: string;
+  jamKe: number;
+  waktu: string;
+  subjects: Record<string, string>; // track -> subject name
+}
+
+export interface ExamDay {
+  id: string;
+  date: string; // YYYY-MM-DD
+  sessions: ExamSession[];
+}
+
+export type SupervisorScheduleMap = Record<string, Record<number, number>>;
+// key: `${dayId}__${sessionId}`, value: { [roomNumber]: supervisorCode }
+
+export interface ExamRule {
+  id: string;
+  text: string;
+  subItems?: string[];
+}
+
+export interface ExamAppState {
+  school: SchoolIdentity;
+  committee: CommitteeMember[];
+  supervisors: Supervisor[];
+  students: Student[];
+  tracks: string[]; // e.g. ['X', 'IPA', 'IPS']
+  examDays: ExamDay[];
+  supervisorSchedule: SupervisorScheduleMap;
+  rules: ExamRule[];
+}

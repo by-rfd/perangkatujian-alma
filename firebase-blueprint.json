@@ -1,0 +1,149 @@
+{
+  "entities": {
+    "Workspace": {
+      "title": "Workspace",
+      "description": "Exam administration workspace containing school settings, committee, supervisors, tracks, exam schedule, supervisor matrix, and exam rules.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the workspace owner."
+        },
+        "school": {
+          "type": "object",
+          "description": "School identity, exam metadata, logos, and preface configuration."
+        },
+        "committee": {
+          "type": "array",
+          "description": "List of exam committee members (max 100)."
+        },
+        "supervisors": {
+          "type": "array",
+          "description": "List of exam room supervisors with codes (max 100)."
+        },
+        "tracks": {
+          "type": "array",
+          "description": "List of class track/major labels (max 20)."
+        },
+        "examDays": {
+          "type": "array",
+          "description": "List of exam days and sessions (max 30)."
+        },
+        "supervisorSchedule": {
+          "type": "object",
+          "description": "Map of day__session keys to room->supervisorCode assignments."
+        },
+        "rules": {
+          "type": "array",
+          "description": "List of exam rules articles (max 50)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when workspace was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the last update."
+        }
+      },
+      "required": [
+        "ownerId",
+        "school",
+        "committee",
+        "supervisors",
+        "tracks",
+        "examDays",
+        "supervisorSchedule",
+        "rules",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Individual exam participant record stored under a workspace subcollection.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the workspace owner."
+        },
+        "noPeserta": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Formatted exam participant number."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Student full name."
+        },
+        "nisn": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "National student identification number."
+        },
+        "kelas": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Class or rombel label."
+        },
+        "ruang": {
+          "type": "integer",
+          "description": "Assigned exam room number (1..200)."
+        },
+        "orderIndex": {
+          "type": "integer",
+          "description": "Ordering index for deterministic seating and list display."
+        },
+        "photoDataUrl": {
+          "type": "string",
+          "maxLength": 350000,
+          "description": "Optional compressed data URL for student passport photo."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when student was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the last update."
+        }
+      },
+      "required": [
+        "ownerId",
+        "noPeserta",
+        "name",
+        "nisn",
+        "kelas",
+        "ruang",
+        "orderIndex",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": {
+        "$ref": "#/entities/Workspace"
+      },
+      "description": "Primary per-user exam administration workspace document."
+    },
+    "/workspaces/{workspaceId}/students/{studentId}": {
+      "schema": {
+        "$ref": "#/entities/Student"
+      },
+      "description": "Exam participant records belonging to the parent workspace."
+    }
+  }
+}

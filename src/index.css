@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html, body, h1, h2, h3, h4, .font-display, .font-sans, .font-mono {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@page a4-landscape {
+  size: A4 landscape;
+  margin: 6mm 7mm;
+}
+
+@page a4-portrait {
+  size: A4 portrait;
+  margin: 8mm;
+}
+
+@page f4-portrait {
+  size: 215mm 330mm;
+  margin: 6mm 8mm;
+}
+
+.a4-sheet-landscape {
+  width: 100%;
+  max-width: 1020px;
+  aspect-ratio: 297 / 210;
+}
+
+.a4-landscape-doc {
+  width: 100%;
+  max-width: 1080px;
+}
+
+.a4-sheet-portrait {
+  width: 100%;
+  max-width: 740px;
+  aspect-ratio: 210 / 297;
+}
+
+.a4-cards-portrait {
+  width: 100%;
+  max-width: 794px;
+}
+
+.f4-sheet-portrait {
+  width: 100%;
+  max-width: 780px;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .a4-sheet-landscape {
+    width: 100% !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    height: 190mm !important;
+    min-height: 190mm !important;
+    max-height: 190mm !important;
+    overflow: hidden !important;
+    page: a4-landscape;
+  }
+
+  .a4-landscape-doc {
+    width: 100% !important;
+    max-width: none !important;
+    page: a4-landscape;
+  }
+
+  .a4-sheet-portrait {
+    width: 100% !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    height: 277mm !important;
+    min-height: 277mm !important;
+    max-height: 277mm !important;
+    overflow: hidden !important;
+    page: a4-portrait;
+  }
+
+  .a4-cards-portrait {
+    width: 100% !important;
+    max-width: none !important;
+    height: 277mm !important;
+    min-height: 277mm !important;
+    max-height: 277mm !important;
+    overflow: hidden !important;
+    page: a4-portrait;
+  }
+
+  .f4-sheet-portrait {
+    width: 100% !important;
+    max-width: none !important;
+    height: 312mm !important;
+    min-height: 312mm !important;
+    max-height: 312mm !important;
+    overflow: hidden !important;
+    page: f4-portrait;
+  }
+
+  .print-page-break {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+

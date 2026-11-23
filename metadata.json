@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Administrasi & Perangkat Ujian Madrasah/Sekolah",
+  "description": "Aplikasi web otomatis untuk mengelola perangkat administrasi ujian: identitas sekolah, database peserta, pembagian ruang, jadwal ujian & pengawas anti-bentrok, denah duduk, kartu ujian, daftar hadir, tata tertib, nomor pintu, dan sampul administrasi siap cetak.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

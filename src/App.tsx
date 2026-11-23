@@ -125,6 +125,18 @@ export default function App() {
   }, [state]);
 
   useEffect(() => {
+    const iconLink = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+    if (!iconLink) return;
+    if (state.school.rightLogoDataUrl) {
+      iconLink.type = 'image/png';
+      iconLink.href = state.school.rightLogoDataUrl;
+    } else {
+      iconLink.type = 'image/svg+xml';
+      iconLink.href = '/favicon.svg';
+    }
+  }, [state.school.rightLogoDataUrl]);
+
+  useEffect(() => {
     const unsub = onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setAuthReady(true);

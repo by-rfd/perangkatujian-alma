@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Download, RotateCcw, Trash2, Upload } from 'lucide-react';
 import { ExamAppState, SchoolIdentity } from '../types/exam';
-import { downloadStateBackup } from '../utils/examLogic';
+import { downloadStateBackup, formatIndonesianDate, isWeekendIso } from '../utils/examLogic';
 import { LogoKemenag, LogoSekolah, OfficialLetterhead } from './SchoolLogos';
 
 interface SchoolSettingsViewProps {
@@ -9,6 +9,7 @@ interface SchoolSettingsViewProps {
   onUpdateSchool: (updater: SchoolIdentity | ((prev: SchoolIdentity) => SchoolIdentity)) => void;
   onUpdateRoomCount: (count: number) => void;
   onUpdateDayCount: (count: number) => void;
+  onUpdateStartDate: (isoDate: string) => void;
   onLoadSampleData: () => void;
   onResetEmpty: () => void;
   onImportStateJson: (newState: ExamAppState) => void;
@@ -59,6 +60,7 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
   onUpdateSchool,
   onUpdateRoomCount,
   onUpdateDayCount,
+  onUpdateStartDate,
   onLoadSampleData,
   onResetEmpty,
   onImportStateJson,
@@ -526,6 +528,34 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
+              <label className={labelCls}>
+                Tanggal Mulai Ujian (Senin–Jumat)
+              </label>
+              <input
+                type="date"
+                value={school.tanggalMulai}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  if (isWeekendIso(val)) {
+                    setStatusMsg(
+                      'Hari Sabtu & Minggu otomatis dilewati dan digeser ke hari Senin berikutnya.'
+                    );
+                  }
+                  onUpdateStartDate(val);
+                }}
+                className={`${fieldCls} font-mono`}
+              />
+              <div className="text-[11px] text-slate-500 mt-1">
+                Mulai:{' '}
+                <strong className="text-slate-700">
+                  {formatIndonesianDate(school.tanggalMulai).dayName},{' '}
+                  {formatIndonesianDate(school.tanggalMulai).fullDate}
+                </strong>{' '}
+                (Sabtu &amp; Minggu dilewati otomatis)
+              </div>
+            </div>
+            <div>
               <label className={labelCls}>Titimangsa Surat &amp; Kartu</label>
               <input
                 type="text"
@@ -535,8 +565,11 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
                 className={fieldCls}
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className={labelCls}>Format Awalan No. Peserta</label>
+              <label className={labelCls}>Awalan No. Peserta</label>
               <input
                 type="text"
                 value={school.prefixNoPeserta}
@@ -544,9 +577,6 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
                 className={`${fieldCls} font-mono`}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelCls}>Max Siswa / Ruang</label>
               <input
@@ -561,7 +591,7 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
               />
             </div>
             <div>
-              <label className={labelCls}>Jumlah Ruang Ujian</label>
+              <label className={labelCls}>Jumlah Ruang</label>
               <input
                 type="number"
                 min={1}
@@ -574,7 +604,7 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
               />
             </div>
             <div>
-              <label className={labelCls}>Jumlah Hari Ujian</label>
+              <label className={labelCls}>Jumlah Hari</label>
               <input
                 type="number"
                 min={1}

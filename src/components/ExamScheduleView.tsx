@@ -1,7 +1,13 @@
-import React, { useRef, useState } from 'react';
-import { Eye, Pencil, Plus, Printer, Trash2 } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { CalendarDays, Eye, Pencil, Plus, Printer, Trash2 } from 'lucide-react';
 import { ExamDay, SchoolIdentity } from '../types/exam';
-import { formatIndonesianDate } from '../utils/examLogic';
+import {
+  ensureWeekdayIso,
+  formatIndonesianDate,
+  isWeekendIso,
+  nextWeekdayIso,
+  normalizeExamDaysToWeekdays,
+} from '../utils/examLogic';
 import { PdfDownloadButton } from './PdfDownloadButton';
 import {
   PrintOrientation,
@@ -19,6 +25,7 @@ interface ExamScheduleViewProps {
   onUpdateExamDays: (days: ExamDay[]) => void;
   onUpdateRoomCount: (count: number) => void;
   onUpdateDayCount: (count: number) => void;
+  onUpdateStartDate: (isoDate: string) => void;
 }
 
 export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
@@ -30,11 +37,18 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
   onUpdateExamDays,
   onUpdateRoomCount,
   onUpdateDayCount,
+  onUpdateStartDate,
 }) => {
   const [mode, setMode] = useState<'edit' | 'print'>('edit');
   const [newTrack, setNewTrack] = useState('');
+  const [dateNotice, setDateNotice] = useState<string | null>(null);
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
   const printSheetRef = useRef<HTMLDivElement>(null);
+
+  const hasWeekendDays = useMemo(
+    () => examDays.some((d) => isWeekendIso(d.date)),
+    [examDays]
+  );
 
   const slug =
     school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
@@ -48,9 +62,8 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
 
   const handleAddDay = () => {
     const lastDate = examDays[examDays.length - 1]?.date || school.tanggalMulai || '2026-06-02';
-    const d = new Date(lastDate);
-    d.setDate(d.getDate() + 1);
-    const nextIso = d.toISOString().slice(0, 10);
+    const nextIso =
+      examDays.length === 0 ? ensureWeekdayIso(lastDate) : nextWeekdayIso(lastDate);
     const dayId = `d-${Date.now()}`;
     const emptySubjects: Record<string, string> = {};
     tracks.forEach((t) => (emptySubjects[t] = ''));
@@ -193,18 +206,40 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
           </div>
         </div>
 
-        {/* Summary Bento Tile with Editable Hari & Ruang */}
+        {/* Summary Bento Tile with Editable Mulai, Hari & Ruang */}
         <div className="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#0A221B] to-[#0E2430] text-white p-5 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-300">Atur Hari &amp; Ruang</span>
+            <span className="text-xs font-medium text-emerald-300">Kalender, Hari &amp; Ruang</span>
             <span className="text-[11px] text-slate-300 tabular-nums">
-              {totalSessions} Sesi · {tracks.length} Jurusan
+              {totalSessions} Sesi · Senin–Jumat
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Hari</label>
+          <div className="grid grid-cols-12 gap-2.5">
+            <div className="col-span-6">
+              <label className="block text-[11px] text-slate-300 mb-1">Mulai Ujian</label>
+              <input
+                type="date"
+                value={school.tanggalMulai}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  if (isWeekendIso(val)) {
+                    setDateNotice(
+                      'Tanggal mulai pada hari Sabtu/Minggu otomatis digeser ke hari Senin sesuai kalender hari efektif.'
+                    );
+                  } else {
+                    setDateNotice(
+                      'Seluruh tanggal hari ujian telah disusun otomatis mengikuti kalender Senin–Jumat (Sabtu & Minggu dilewati).'
+                    );
+                  }
+                  onUpdateStartDate(val);
+                }}
+                className="w-full px-2 py-1.5 text-xs font-bold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+              />
+            </div>
+            <div className="col-span-3">
+              <label className="block text-[11px] text-slate-300 mb-1">Hari</label>
               <input
                 type="number"
                 min={1}
@@ -213,11 +248,11 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
                 onChange={(e) =>
                   onUpdateDayCount(Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1)))
                 }
-                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+                className="w-full px-2 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
               />
             </div>
-            <div>
-              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Ruang</label>
+            <div className="col-span-3">
+              <label className="block text-[11px] text-slate-300 mb-1">Ruang</label>
               <input
                 type="number"
                 min={1}
@@ -226,15 +261,24 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
                 onChange={(e) =>
                   onUpdateRoomCount(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)))
                 }
-                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+                className="w-full px-2 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
               />
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
-            <span className="text-[11px] text-slate-300">
-              A4 {orientation === 'landscape' ? 'Landscape' : 'Portrait'}
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onUpdateStartDate(school.tanggalMulai || examDays[0]?.date || '2026-06-02');
+                setDateNotice(
+                  'Kalender jadwal ujian disusun ulang Senin–Jumat (hari Sabtu & Minggu dilewati otomatis).'
+                );
+              }}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 whitespace-nowrap"
+            >
+              <CalendarDays className="w-3.5 h-3.5" /> Susun Kalender (Non-Weekend)
+            </button>
             {mode === 'edit' && (
               <button
                 type="button"
@@ -247,6 +291,47 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
           </div>
         </div>
       </section>
+
+      {(hasWeekendDays || dateNotice) && (
+        <div
+          className={`no-print px-4 py-2.5 rounded-2xl border text-xs flex flex-wrap items-center justify-between gap-2 ${
+            hasWeekendDays
+              ? 'bg-amber-50 border-amber-200 text-amber-900'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+          }`}
+        >
+          <span>
+            {hasWeekendDays
+              ? 'Ditemukan tanggal ujian pada hari Sabtu atau Minggu. Klik tombol di kanan untuk otomatis menggesernya ke hari Senin–Jumat di seluruh administrasi.'
+              : dateNotice}
+          </span>
+          <div className="flex items-center gap-2">
+            {hasWeekendDays && (
+              <button
+                type="button"
+                onClick={() => {
+                  onUpdateExamDays(
+                    normalizeExamDaysToWeekdays(examDays, school.tanggalMulai || '2026-06-02')
+                  );
+                  setDateNotice('Hari Sabtu & Minggu berhasil dilewati di seluruh administrasi.');
+                }}
+                className="px-3 py-1 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+              >
+                Lewati Sabtu &amp; Minggu
+              </button>
+            )}
+            {dateNotice && (
+              <button
+                type="button"
+                onClick={() => setDateNotice(null)}
+                className="underline font-medium"
+              >
+                Tutup
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {mode === 'edit' && (
         <div className="no-print space-y-4">
@@ -307,13 +392,21 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
                       <input
                         type="date"
                         value={day.date}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (!raw) return;
+                          const safeDate = ensureWeekdayIso(raw);
+                          if (safeDate !== raw) {
+                            setDateNotice(
+                              'Hari Sabtu & Minggu tidak dimasukkan; tanggal otomatis digeser ke hari Senin berikutnya.'
+                            );
+                          }
                           onUpdateExamDays(
                             examDays.map((d) =>
-                              d.id === day.id ? { ...d, date: e.target.value } : d
+                              d.id === day.id ? { ...d, date: safeDate } : d
                             )
-                          )
-                        }
+                          );
+                        }}
                         className="px-2.5 py-1 text-xs font-mono bg-white border border-slate-200 rounded-md"
                       />
                       <span className="text-xs font-medium text-slate-600">
@@ -497,11 +590,11 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
           </tbody>
         </table>
 
-        <div className="mt-8 flex justify-end pr-8">
+        <div className="mt-5 print:mt-4 flex justify-end pr-8">
           <div className="text-xs text-slate-900 min-w-[210px]">
             <div>{school.titimangsa}</div>
             <div>Ketua {school.singkatanUjian}</div>
-            <div className="h-16" />
+            <div className="h-14 print:h-12" />
             <div className="font-bold underline">{school.ketuaPanitia}</div>
             {school.nipKetua && school.nipKetua !== '-' && (
               <div className="font-mono text-[11px]">NIP. {school.nipKetua}</div>

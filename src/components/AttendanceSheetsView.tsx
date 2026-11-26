@@ -667,11 +667,11 @@ export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> =
             </tbody>
           </table>
 
-          <div className="mt-6 flex justify-end pr-8">
+          <div className="mt-4 print:mt-3 flex justify-end pr-8">
             <div className="text-xs text-slate-900 min-w-[200px]">
               <div>{school.titimangsa}</div>
               <div>Ketua {school.singkatanUjian}</div>
-              <div className="h-14" />
+              <div className="h-11 print:h-10" />
               <div className="font-bold underline">{school.ketuaPanitia}</div>
             </div>
           </div>

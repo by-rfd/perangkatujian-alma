@@ -5,24 +5,55 @@ export function createDefaultProposal(): ExamProposal {
   return {
     nomorSurat: '001/PAN-UJIAN/V/2026',
     lampiran: '1 (Satu) Berkas',
-    perihal: 'Permohonan Persetujuan & Anggaran Pelaksanaan Ujian',
+    perihal: 'Proposal Penyelenggaraan & Rencana Anggaran Ujian',
+    kataPengantar:
+      'Puji syukur ke hadirat Allah Subhanahu wa Ta\'ala atas segala limpahan rahmat, taufik, dan hidayah-Nya sehingga Proposal dan Pedoman Penyelenggaraan Ujian ini dapat disusun dengan baik.\n\nProposal ini disusun sebagai acuan teknis, administratif, dan pengorganisasian bagi seluruh panitia pelaksana, pengawas ruang, serta pihak terkait agar pelaksanaan ujian berjalan tertib, objektif, aman, dan akuntabel sesuai kalender pendidikan yang berlaku.\n\nKami menyampaikan terima kasih kepada Kepala Madrasah/Sekolah, dewan guru, serta seluruh jajaran panitia atas dukungan dan kerja samanya. Kritik dan saran konstruktif senantiasa kami harapkan demi perbaikan penyelenggaraan evaluasi pendidikan di masa mendatang.',
     latarBelakang:
-      'Penilaian hasil belajar merupakan bagian integral dari proses pendidikan untuk mengukur ketercapaian kompetensi peserta didik secara objektif, terstruktur, dan akuntabel. Dalam rangka mengevaluasi hasil pembelajaran selama satu semester, panitia menyusun proposal kegiatan ujian ini sebagai pedoman teknis penyelenggaraan sekaligus dasar perencanaan anggaran agar seluruh rangkaian ujian berjalan tertib, aman, dan lancar.',
+      'Penilaian hasil belajar merupakan bagian integral dari proses pembelajaran untuk mengukur ketercapaian kompetensi peserta didik secara objektif, terstruktur, dan berkesinambungan. Dalam rangka mengevaluasi capaian belajar selama satu periode semester serta memenuhi standar penilaian pendidikan nasional, dipandang perlu diselenggarakan ujian secara terencana.\n\nAgar pelaksanaan ujian berjalan tertib, lancar, bebas kendala teknis, serta dapat dipertanggungjawabkan secara administratif maupun keuangan, maka Panitia Pelaksana menyusun proposal kegiatan ini sebagai pedoman kerja resmi.',
+    pengertian:
+      'Ujian / Asesmen Sumatif adalah kegiatan pengukuran dan penilaian capaian kompetensi peserta didik pada akhir periode pembelajaran yang mencakup aspek pengetahuan dan pemahaman konsep pada seluruh mata pelajaran sesuai kurikulum yang berlaku di sekolah/madrasah.',
     dasarHukum: [
       'Undang-Undang Nomor 20 Tahun 2003 tentang Sistem Pendidikan Nasional.',
+      'Peraturan Pemerintah tentang Standar Nasional Pendidikan beserta perubahannya.',
       'Peraturan Menteri Pendidikan, Kebudayaan, Riset, dan Teknologi tentang Standar Penilaian Pendidikan.',
-      'Kalender Pendidikan dan Program Kerja Tahunan Sekolah / Madrasah Tahun Pelajaran 2025/2026.',
-      'Keputusan Rapat Dewan Guru dan Kepala Madrasah/Sekolah tentang Pembentukan Panitia Pelaksana Ujian.',
+      'Keputusan Direktorat Jenderal Pendidikan Islam / Dinas Pendidikan tentang Kalender Pendidikan Tahun Pelajaran berjalan.',
+      'Program Kerja Tahunan Madrasah / Sekolah dan Rapat Dewan Guru tentang Pembentukan Panitia Pelaksana Ujian.',
     ],
     tujuanKegiatan: [
-      'Mengukur pencapaian kompetensi dan pemahaman peserta didik pada seluruh mata pelajaran sesuai kurikulum.',
-      'Menyediakan laporan hasil belajar peserta didik yang valid, objektif, dan dapat dipertanggungjawabkan.',
-      'Menjamin pelaksanaan evaluasi belajar berlangsung tertib, jujur, bebas kendala teknis, dan tepat waktu.',
-      'Mewujudkan tata kelola administrasi kepanitiaan ujian yang rapi dan terstandar.',
+      'Mengukur tingkat ketercapaian kompetensi dan penguasaan materi peserta didik pada seluruh mata pelajaran.',
+      'Memperoleh data dan nilai hasil belajar peserta didik yang valid, objektif, dan dapat dipertanggungjawabkan.',
+      'Mendorong peningkatan motivasi belajar peserta didik serta efektivitas proses pembelajaran guru.',
+      'Menjamin terselenggaranya administrasi ujian yang tertib, rapi, transparan, dan sesuai standar operasional.',
     ],
+    ruangLingkup:
+      'Ruang lingkup proposal ini meliputi seluruh tahapan penyelenggaraan ujian mulai dari tahap perencanaan, pengorganisasian panitia, publikasi, pengadaan instrumen/piranti penilaian, pengadministrasian peserta dan ruangan, pelaksanaan serta pengawasan ujian, pemeriksaan dan pengolahan nilai, hingga pelaporan kegiatan akhir.',
+    sasaran:
+      'Sasaran kegiatan ini adalah seluruh peserta didik aktif dari semua tingkatan kelas dan jurusan yang terdaftar pada satuan pendidikan, dengan melibatkan kepala sekolah/madrasah, panitia pelaksana, dan dewan guru sebagai pengawas ruang.',
+    sistematikaPenulisan:
+      'Proposal ini disusun secara sistematis ke dalam empat bagian utama: Bab I Pendahuluan (latar belakang, pengertian, dasar, tujuan, ruang lingkup, sasaran, dan sistematika penulisan), Bab II Pengorganisasian (organisasi kepanitiaan, susunan panitia, dan pembagian tugas), Bab III Tahap Pelaksanaan (perencanaan hingga kegiatan akhir), Bab IV Penutup, serta Lampiran-lampiran pendukung.',
+    organisasiKepanitiaan:
+      'Struktur organisasi kepanitiaan dibentuk berdasarkan keputusan Kepala Madrasah/Sekolah melalui rapat dewan guru. Kepanitiaan dipimpin oleh Penanggung Jawab (Kepala Madrasah/Sekolah) dan dilaksanakan secara operasional oleh Ketua Panitia, Sekretaris, Bendahara, serta Anggota/Seksi yang saling berkoordinasi.',
+    pembagianTugas:
+      '1. Penanggung Jawab: Memberikan arahan kebijakan, mengesahkan pedoman dan anggaran, serta mengawasi keseluruhan penyelenggaraan ujian.\n2. Ketua Panitia: Mengoordinasikan seluruh tahapan perencanaan, pelaksanaan, penugasan pengawas, dan penyelesaian kendala di lapangan.\n3. Sekretaris: Menyiapkan administrasi persuratan, jadwal ujian, daftar hadir, kartu peserta, denah ruang, tata tertib, dan dokumentasi laporan.\n4. Bendahara: Menyusun Rencana Anggaran Biaya (RAB), mengelola penerimaan dan pengeluaran dana secara akuntabel, serta menyusun SPJ keuangan.\n5. Anggota / Seksi & Pengawas Ruang: Membantu penyiapan ruang, distribusi perangkat soal/aplikasi, menjaga ketertiban pelaksanaan ujian, serta mengamankan berkas daftar hadir dan berita acara.',
+    tahapPerencanaan:
+      'Tahap perencanaan dilaksanakan sebelum hari pertama ujian meliputi rapat pembentukan panitia, penentuan hari efektif ujian berdasarkan kalender pendidikan (Senin–Jumat, tanpa hari Sabtu dan Minggu), penetapan jadwal mata pelajaran, penyusunan kebutuhan ruang dan pengawas, serta penyusunan proposal dan Rencana Anggaran Biaya (RAB).',
+    publikasi:
+      'Publikasi dan sosialisasi jadwal ujian, tata tertib peserta, pembagian ruang, serta ketentuan teknis (seperti penggunaan kartu peserta dan perangkat ujian) disampaikan kepada peserta didik, guru pengawas, dan orang tua/wali melalui papan pengumuman madrasah/sekolah serta kanal informasi resmi sekolah.',
+    pengadaanPiranti:
+      'Pengadaan piranti penilaian meliputi penyusunan kisi-kisi soal, penulisan dan telaah naskah soal oleh guru mata pelajaran, penggandaan naskah atau pengunggahan paket soal pada aplikasi/server ujian berbasis komputer/smartphone, serta penyiapan lembar jawaban atau instrumen cadangan.',
+    pengadministrasian:
+      'Pengadministrasian mencakup pendataan peserta ujian (penomoran peserta, kelengkapan NISN, pasfoto), pembagian ruang silang angkatan, pencetakan Kartu Peserta, Kartu Panitia, Denah Tempat Duduk, Nomor Pintu Ruang, Poster Harap Tenang, serta Daftar Hadir Peserta, Pengawas, dan Panitia.',
+    pelaksanaanPengawasan:
+      'Pelaksanaan ujian berlangsung tertib sesuai jadwal yang telah ditetapkan pada hari efektif sekolah dengan sistem pengawasan silang/terjadwal bebas bentrok. Pengawas ruang bertugas membacakan tata tertib, memastikan kehadiran peserta melalui daftar hadir, menjaga ketenangan dan kejujuran ujian, serta mengisi berita acara pelaksanaan.',
+    pemeriksaanPengolahan:
+      'Setelah setiap sesi atau hari ujian selesai, naskah/hasil jawaban peserta diperiksa, dikoreksi, dan direkapitulasi oleh guru mata pelajaran masing-masing secara objektif sesuai pedoman penskoran yang telah ditetapkan.',
+    penilaian:
+      'Hasil pengolahan nilai dari seluruh mata pelajaran digabungkan dan divalidasi untuk menentukan capaian belajar peserta didik sebagai bahan pengisian rapor, pemetaan mutu pembelajaran, serta program remedial atau pengayaan bila diperlukan.',
+    kegiatanAkhir:
+      'Kegiatan akhir meliputi evaluasi penyelenggaraan ujian bersama panitia dan dewan guru, penyelesaian administrasi keuangan (SPJ), pengarsipan seluruh berkas daftar hadir dan berita acara, serta penyampaian laporan pertanggungjawaban kepada Kepala Madrasah/Sekolah.',
     tempatPelaksanaan: 'Ruang Kelas & Lingkungan Sekolah / Madrasah',
     penutup:
-      'Demikian proposal kegiatan pelaksanaan ujian ini disusun sebagai acuan pelaksanaan tugas kepanitiaan. Atas perhatian, dukungan, dan persetujuan Bapak/Ibu Kepala Madrasah/Sekolah, kami ucapkan terima kasih.',
+      'Demikian proposal penyelenggaraan ujian ini disusun sebagai acuan resmi pelaksanaan kegiatan. Atas perhatian, dukungan, dan persetujuan Bapak/Ibu Kepala Madrasah/Sekolah serta kerja sama seluruh pihak, kami ucapkan terima kasih.',
     budgetItems: [
       { id: 'rab-1', uraian: 'Pengadaan & Penggandaan Soal / Server CBT', volume: 1, satuan: 'Paket', hargaSatuan: 750000 },
       { id: 'rab-2', uraian: 'ATK, Kertas F4/A4, Amplop & Kartu Peserta', volume: 1, satuan: 'Paket', hargaSatuan: 450000 },
@@ -584,7 +615,7 @@ export const INITIAL_EXAM_STATE: ExamAppState = {
     },
     {
       id: 'd5',
-      date: '2026-06-06',
+      date: '2026-06-08',
       sessions: [
         {
           id: 'd5s1',
@@ -602,7 +633,7 @@ export const INITIAL_EXAM_STATE: ExamAppState = {
     },
     {
       id: 'd6',
-      date: '2026-06-07',
+      date: '2026-06-09',
       sessions: [
         {
           id: 'd6s1',
@@ -626,7 +657,7 @@ export const INITIAL_EXAM_STATE: ExamAppState = {
     },
     {
       id: 'd7',
-      date: '2026-06-09',
+      date: '2026-06-10',
       sessions: [
         {
           id: 'd7s1',
@@ -644,7 +675,7 @@ export const INITIAL_EXAM_STATE: ExamAppState = {
     },
     {
       id: 'd8',
-      date: '2026-06-10',
+      date: '2026-06-11',
       sessions: [
         {
           id: 'd8s1',

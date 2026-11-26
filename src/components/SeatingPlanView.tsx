@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ArrowLeftRight, Printer } from 'lucide-react';
+import { ArrowLeftRight, Printer, Shuffle } from 'lucide-react';
 import { SchoolIdentity, Student } from '../types/exam';
 import { PdfDownloadButton } from './PdfDownloadButton';
 import {
@@ -14,6 +14,7 @@ interface SeatingPlanViewProps {
   students: Student[];
   roomCount: number;
   onSwapStudents: (idA: string, idB: string) => void;
+  onRandomizeCrossGrade: () => void;
 }
 
 export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
@@ -21,10 +22,11 @@ export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
   students,
   roomCount,
   onSwapStudents,
+  onRandomizeCrossGrade,
 }) => {
   const [selectedRoom, setSelectedRoom] = useState<number>(1);
   const [printAllRooms, setPrintAllRooms] = useState(false);
-  const [showKelas, setShowKelas] = useState(false);
+  const [showKelas, setShowKelas] = useState(true);
   const [swapCandidateId, setSwapCandidateId] = useState<string | null>(null);
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
   const pagesRef = useRef<HTMLDivElement>(null);
@@ -113,6 +115,19 @@ export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
               />
               Semua Ruang
             </label>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSwapCandidateId(null);
+                onRandomizeCrossGrade();
+              }}
+              disabled={students.length === 0}
+              title="Acak posisi duduk tiap ruang agar berbeda angkatan (mis. Kelas X sebangku dengan XI/XII)"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 rounded-xl whitespace-nowrap"
+            >
+              <Shuffle className="w-3.5 h-3.5" /> Acak Silang Angkatan
+            </button>
 
             <PdfDownloadButton
               filename={`denah-tempat-duduk-${slug}`}
@@ -264,11 +279,11 @@ export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
                 ))}
               </div>
 
-              <div className="mt-6 print:mt-3 flex justify-end pr-6">
+              <div className="mt-4 print:mt-2.5 flex justify-end pr-6">
                 <div className="text-xs text-slate-900 min-w-[190px]">
                   <div>{school.titimangsa}</div>
                   <div>Ketua {school.singkatanUjian}</div>
-                  <div className="h-12 print:h-9" />
+                  <div className="h-11 print:h-9" />
                   <div className="font-bold underline">{school.ketuaPanitia}</div>
                 </div>
               </div>

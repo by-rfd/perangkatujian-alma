@@ -52,9 +52,13 @@ import {
 } from './services/firestoreSync';
 import { ExamAppState, Student, TabId } from './types/exam';
 import {
+  applyExamStartDate,
   downloadStateBackup,
+  ensureWeekdayIso,
   getActiveSessionsList,
   getEffectiveRoomCount,
+  normalizeExamDaysToWeekdays,
+  randomizeSeatingCrossGrade,
   rebalanceStudentsToRooms,
   resizeExamDays,
 } from './utils/examLogic';
@@ -87,9 +91,14 @@ function loadInitialState(): ExamAppState {
     if (!parsed || !parsed.school || !Array.isArray(parsed.students)) {
       return INITIAL_EXAM_STATE;
     }
+    const normalizedDays = normalizeExamDaysToWeekdays(
+      parsed.examDays || INITIAL_EXAM_STATE.examDays,
+      parsed.school.tanggalMulai
+    );
     return {
       ...parsed,
-      proposal: parsed.proposal ?? createDefaultProposal(),
+      examDays: normalizedDays,
+      proposal: { ...createDefaultProposal(), ...(parsed.proposal ?? {}) },
     };
   } catch {
     return INITIAL_EXAM_STATE;
@@ -190,6 +199,10 @@ export default function App() {
 
       const merged: ExamAppState = {
         ...latestWorkspaceFields,
+        examDays: normalizeExamDaysToWeekdays(
+          latestWorkspaceFields.examDays,
+          latestWorkspaceFields.school.tanggalMulai
+        ),
         students: latestStudents,
       };
       lastSyncedWorkspaceSigRef.current = workspaceSignature(merged);
@@ -474,6 +487,22 @@ export default function App() {
     }));
   };
 
+  const handleUpdateStartDate = (rawIso: string) => {
+    const safeStart = ensureWeekdayIso(rawIso);
+    setState((prev) => ({
+      ...prev,
+      school: { ...prev.school, tanggalMulai: safeStart },
+      examDays: applyExamStartDate(prev.examDays, safeStart),
+    }));
+  };
+
+  const handleRandomizeCrossGrade = () => {
+    setState((prev) => ({
+      ...prev,
+      students: randomizeSeatingCrossGrade(prev.students, roomCount, Date.now()),
+    }));
+  };
+
   return (
     <div className="min-h-screen flex bg-[#F6F8FA] text-slate-900 print:block print:min-h-0 print:bg-white">
       <Sidebar
@@ -637,12 +666,17 @@ export default function App() {
                 }
                 onUpdateRoomCount={handleUpdateRoomCount}
                 onUpdateDayCount={handleUpdateDayCount}
+                onUpdateStartDate={handleUpdateStartDate}
                 onLoadSampleData={() => setState(INITIAL_EXAM_STATE)}
                 onResetEmpty={() => setState(EMPTY_EXAM_STATE)}
                 onImportStateJson={(newState) =>
                   setState({
                     ...newState,
-                    proposal: newState.proposal ?? createDefaultProposal(),
+                    examDays: normalizeExamDaysToWeekdays(
+                      newState.examDays || INITIAL_EXAM_STATE.examDays,
+                      newState.school?.tanggalMulai
+                    ),
+                    proposal: { ...createDefaultProposal(), ...(newState.proposal ?? {}) },
                   })
                 }
               />
@@ -678,6 +712,7 @@ export default function App() {
                 onUpdateExamDays={(examDays) => setState((prev) => ({ ...prev, examDays }))}
                 onUpdateRoomCount={handleUpdateRoomCount}
                 onUpdateDayCount={handleUpdateDayCount}
+                onUpdateStartDate={handleUpdateStartDate}
               />
             )}
 
@@ -705,6 +740,7 @@ export default function App() {
                 students={state.students}
                 roomCount={roomCount}
                 onSwapStudents={handleSwapStudents}
+                onRandomizeCrossGrade={handleRandomizeCrossGrade}
               />
             )}
 

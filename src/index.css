@@ -30,6 +30,11 @@
   margin: 6mm 8mm;
 }
 
+@page proposal-a4 {
+  size: A4 portrait;
+  margin: 12mm 14mm;
+}
+
 .a4-sheet-landscape {
   width: 100%;
   max-width: 1020px;
@@ -50,6 +55,12 @@
 .a4-cards-portrait {
   width: 100%;
   max-width: 794px;
+}
+
+.proposal-a4-sheet {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
 }
 
 .f4-sheet-portrait {
@@ -119,6 +130,25 @@
     max-height: 277mm !important;
     overflow: hidden !important;
     page: a4-portrait;
+  }
+
+  .proposal-a4-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 270mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page: proposal-a4;
+  }
+
+  .proposal-cover-sheet {
+    height: 271mm !important;
+    min-height: 271mm !important;
+    max-height: 271mm !important;
+    overflow: hidden !important;
   }
 
   .f4-sheet-portrait {

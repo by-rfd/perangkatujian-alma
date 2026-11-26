@@ -265,17 +265,22 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
   const slug =
     school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
+  // Portrait card size: 5.5 cm (55mm) wide x 8.5 cm (85mm) tall
+  // A4 Portrait (194mm x 281mm printable): 3 cols x 3 rows = 9 cards/sheet
+  // A4 Landscape (281mm x 194mm printable): 4 cols x 2 rows = 8 cards/sheet
+  const cardsPerPage = orientation === 'landscape' ? 8 : 9;
+
   const pages = useMemo(() => {
     const chunks: CommitteeMember[][] = [];
-    for (let i = 0; i < committee.length; i += 4) {
-      chunks.push(committee.slice(i, i + 4));
+    for (let i = 0; i < committee.length; i += cardsPerPage) {
+      chunks.push(committee.slice(i, i + cardsPerPage));
     }
     return chunks;
-  }, [committee]);
+  }, [committee, cardsPerPage]);
 
   return (
     <div className="space-y-5">
-      <PrintPageConfig orientation={orientation} marginMm={8} />
+      <PrintPageConfig orientation={orientation} paperSize="A4" marginMm={8} />
       <section className="no-print grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
         <div className="xl:col-span-8 bg-white border border-slate-200/80 rounded-2xl p-5 flex flex-col justify-between gap-4 shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
           <div>
@@ -283,7 +288,7 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
               Kartu Tanda Pengenal Panitia ({committee.length} Kartu)
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Otomatis dibuat dari Data Panitia &amp; Identitas Sekolah (4 kartu per halaman A4).
+              Posisi <strong>Portrait 5,5 cm × 8,5 cm</strong> (55 × 85 mm) — muat {cardsPerPage} kartu per lembar A4 ({orientation === 'landscape' ? '4 × 2' : '3 × 3'}).
             </p>
           </div>
 
@@ -293,7 +298,7 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
               filename={`kartu-panitia-${slug}`}
               orientation={orientation}
               paperSize="A4"
-              marginMm={7}
+              marginMm={8}
               disabled={committee.length === 0}
               getPageElements={() =>
                 committeePagesRef.current
@@ -316,12 +321,14 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
         </div>
 
         <div className="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#0A221B] to-[#0E2430] text-white p-5 flex flex-col justify-between gap-2">
-          <div className="text-xs font-medium text-emerald-300">Kartu Pengenal Panitia</div>
+          <div className="text-xs font-medium text-emerald-300">
+            Kartu Portrait · 5,5 cm × 8,5 cm
+          </div>
           <div className="text-2xl font-extrabold tabular-nums">
             {pages.length} Hal · {committee.length} Kartu
           </div>
           <div className="text-[11px] text-slate-300 pt-2 border-t border-white/10 tabular-nums">
-            A4 {orientation === 'landscape' ? 'Landscape' : 'Portrait'} · 4 kartu per lembar
+            A4 {orientation === 'landscape' ? 'Landscape (4×2)' : 'Portrait (3×3)'} · {cardsPerPage} kartu/lembar
           </div>
         </div>
       </section>
@@ -331,48 +338,67 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
           Belum ada data panitia. Tambahkan di menu Panitia &amp; Pengawas.
         </div>
       ) : (
-        <div ref={committeePagesRef} className="space-y-6">
+        <div
+          ref={committeePagesRef}
+          className="space-y-6 overflow-x-auto pb-2 print:overflow-visible print:pb-0"
+        >
           {pages.map((chunk, pIdx) => (
             <div
               key={pIdx}
               data-pdf-page="true"
-              className={`print-only-container bg-white border border-slate-200 rounded-xl p-6 max-w-4xl mx-auto ${
+              className={`print-only-container bg-white border border-slate-200 rounded-xl p-4 mx-auto shadow-sm print:shadow-none print:rounded-none ${
+                orientation === 'landscape'
+                  ? 'w-[281mm] min-h-[192mm]'
+                  : 'w-[194mm] min-h-[276mm]'
+              } print:w-full print:min-h-0 ${
                 pIdx < pages.length - 1 ? 'print-page-break' : ''
               }`}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4">
+              <div
+                className={`grid justify-center content-start ${
+                  orientation === 'landscape'
+                    ? 'grid-cols-4 gap-x-[6mm] gap-y-[6mm]'
+                    : 'grid-cols-3 gap-x-[6mm] gap-y-[5mm]'
+                }`}
+              >
                 {chunk.map((member) => (
                   <div
                     key={member.id}
-                    className="print-avoid-break border-2 border-slate-900 bg-white flex flex-col justify-between overflow-hidden min-h-[420px] print:min-h-[126mm] print:h-[126mm]"
+                    className="print-avoid-break w-[55mm] h-[85mm] shrink-0 box-border border-[1.5px] border-slate-900 bg-white flex flex-col justify-between overflow-hidden"
                   >
-                    {/* Top Banner with both Left (Kemenag) & Right (Sekolah) Logos */}
-                    <div className="bg-[#0F2C59] text-white px-3.5 py-3.5 relative">
-                      <div className="flex items-center gap-2.5">
-                        <div className="shrink-0 bg-white/15 p-1 rounded-full">
-                          <LeftLogo school={school} className="w-9 h-9" />
+                    {/* Top Header Strip */}
+                    <div className="bg-[#0F2C59] text-white px-1.5 py-1.5 shrink-0">
+                      <div className="flex items-center gap-1">
+                        <div className="shrink-0 bg-white/15 p-0.5 rounded-full">
+                          <LeftLogo school={school} className="w-5 h-5" />
                         </div>
-                        <div className="text-center flex-1 min-w-0 leading-tight">
-                          <div className="text-[8.5px] text-emerald-200 font-medium truncate">
+                        <div className="text-center flex-1 min-w-0 leading-[1.15]">
+                          <div className="text-[4.8px] text-emerald-200 font-medium truncate uppercase">
                             {school.namaInstansi}
                           </div>
-                          <div className="text-[11px] font-extrabold uppercase tracking-wide truncate mt-0.5">
+                          <div className="text-[6.8px] font-extrabold uppercase tracking-tight truncate">
                             {school.namaSekolah}
                           </div>
-                          <div className="text-[11px] font-bold">({school.singkatanSekolah})</div>
-                          <div className="text-[7px] text-slate-200 mt-0.5 truncate">
+                          <div className="text-[6.2px] font-bold truncate">
+                            ({school.singkatanSekolah})
+                          </div>
+                          <div className="text-[4.5px] text-slate-200 truncate">
                             {school.alamat}
                           </div>
                         </div>
-                        <div className="shrink-0 bg-white/15 p-1 rounded-full">
-                          <RightLogo school={school} className="w-9 h-9" />
+                        <div className="shrink-0 bg-white/15 p-0.5 rounded-full">
+                          <RightLogo school={school} className="w-5 h-5" />
                         </div>
                       </div>
                     </div>
 
-                    {/* Center Photo & Identity */}
-                    <div className="px-6 py-4 flex flex-col items-center text-center flex-1 justify-center">
-                      <div className="w-28 h-34 border-2 border-slate-900 p-1 bg-white mb-4">
+                    {/* Center Vertical Portrait Photo & Identity (5.5 x 8.5 cm) */}
+                    <div className="px-2.5 py-2 flex flex-col items-center justify-center text-center flex-1 min-h-0">
+                      <div className="text-[6px] font-bold uppercase tracking-wider text-[#0F2C59] mb-1">
+                        KARTU PANITIA
+                      </div>
+
+                      <div className="w-[20mm] h-[26mm] border border-slate-900 p-[1px] bg-white mb-1.5 shrink-0">
                         <div className="w-full h-full bg-slate-100 flex items-center justify-center overflow-hidden">
                           {member.photoDataUrl ? (
                             <img
@@ -381,39 +407,39 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <User className="w-10 h-10 text-slate-400" />
+                            <User className="w-6 h-6 text-slate-400" />
                           )}
                         </div>
                       </div>
 
-                      <div className="text-sm font-extrabold uppercase text-slate-950 tracking-wide">
+                      <div className="text-[8.5px] font-extrabold uppercase text-slate-950 leading-[1.15] line-clamp-2 break-words w-full">
                         {member.name}
                       </div>
 
-                      <div className="mt-1 w-48 py-1 bg-[#0F2C59] text-white text-xs font-bold uppercase tracking-wider">
+                      <div className="mt-1 px-2.5 py-0.5 bg-[#0F2C59] text-white text-[6.8px] font-bold uppercase tracking-wider max-w-full truncate">
                         {member.role}
                       </div>
 
-                      <div className="mt-4 text-xs font-bold uppercase text-slate-900">
+                      <div className="mt-1.5 text-[6.3px] font-bold uppercase text-slate-900 leading-tight line-clamp-2 w-full">
                         {school.jenisUjian}
                       </div>
-                      <div className="text-xs font-medium uppercase text-slate-700">
-                        TAHUN PELAJARAN {school.tahunPelajaran}
+                      <div className="text-[5.8px] font-medium uppercase text-slate-600 leading-tight mt-0.5 truncate w-full">
+                        TP {school.tahunPelajaran}
                       </div>
                     </div>
 
                     {/* Bottom Contact Strip */}
-                    <div className="bg-[#0F2C59] text-white px-4 py-2 text-[9px] flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1 truncate">
-                        <Globe className="w-3 h-3 text-emerald-300 shrink-0" />
+                    <div className="bg-[#0F2C59] text-white px-1.5 py-1 text-[5.2px] flex items-center justify-between gap-1 shrink-0">
+                      <span className="inline-flex items-center gap-0.5 truncate">
+                        <Globe className="w-2 h-2 text-emerald-300 shrink-0" />
                         {school.sosmedIg || '-'}
                       </span>
-                      <span className="inline-flex items-center gap-1 truncate">
-                        <Share2 className="w-3 h-3 text-emerald-300 shrink-0" />
+                      <span className="inline-flex items-center gap-0.5 truncate">
+                        <Share2 className="w-2 h-2 text-emerald-300 shrink-0" />
                         {school.sosmedFb || '-'}
                       </span>
-                      <span className="inline-flex items-center gap-1 font-mono truncate">
-                        <MessageCircle className="w-3 h-3 text-emerald-300 shrink-0" />
+                      <span className="inline-flex items-center gap-0.5 font-mono truncate">
+                        <MessageCircle className="w-2 h-2 text-emerald-300 shrink-0" />
                         {school.sosmedWa || '-'}
                       </span>
                     </div>

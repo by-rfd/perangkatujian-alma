@@ -119,7 +119,7 @@ export const AdminCoversView: React.FC<AdminCoversViewProps> = ({ school, onUpda
 
   const renderPreface = () => (
     <div
-      className={`${sheetClass} bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 mx-auto flex flex-col justify-between text-slate-950 shadow-sm print:border-0 print:rounded-none print:shadow-none`}
+      className={`${sheetClass} bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 mx-auto flex flex-col text-slate-950 shadow-sm print:border-0 print:rounded-none print:shadow-none`}
     >
       <div>
         <h2 className="text-lg font-extrabold text-center uppercase tracking-wide mb-6">
@@ -144,11 +144,11 @@ export const AdminCoversView: React.FC<AdminCoversViewProps> = ({ school, onUpda
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end pr-8">
+      <div className="mt-6 print:mt-5 flex justify-end pr-8">
         <div className="text-sm min-w-[220px]">
           <div>{school.titimangsa}</div>
           <div>Kepala Madrasah</div>
-          <div className="h-14" />
+          <div className="h-12" />
           <div className="font-bold underline">{school.kepalaMadrasah}</div>
           {school.nipKepala && school.nipKepala !== '-' && (
             <div className="font-mono text-xs">NIP. {school.nipKepala}</div>

@@ -159,13 +159,14 @@ export const StudentsDatabaseView: React.FC<StudentsDatabaseViewProps> = ({
       prefix: assignPrefix,
       startNumber: 1,
       regenerateNumbers: assignRegenNumbers,
+      shuffleSeed: Date.now(),
     });
     onUpdateStudents(updated);
     onUpdateRoomCount(newRooms);
     setShowAutoAssignModal(false);
     setFeedback(
       `${updated.length} peserta berhasil dibagi otomatis ke ${newRooms} ruang (${
-        assignMode === 'interleave' ? 'Acak Silang Kelas' : 'Urut Kelas'
+        assignMode === 'interleave' ? 'Acak Silang Angkatan' : 'Urut Kelas'
       }).`
     );
   };
@@ -937,9 +938,9 @@ export const StudentsDatabaseView: React.FC<StudentsDatabaseViewProps> = ({
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <div className="text-xs font-semibold text-slate-900">Acak Silang Kelas</div>
+                    <div className="text-xs font-semibold text-slate-900">Acak Silang Angkatan</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
-                      Menyilang kelas X, XI, XII dalam tiap ruang agar tidak duduk bersebelahan sekelas.
+                      Memasangkan beda tingkat (mis. Kelas X duduk sebangku dengan XI/XII) agar tidak satu angkatan.
                     </div>
                   </button>
                   <button

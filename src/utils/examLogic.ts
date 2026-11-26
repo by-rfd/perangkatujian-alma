@@ -109,6 +109,90 @@ const SHORT_MONTHS = [
   'Des',
 ];
 
+export function parseIsoDateLocal(isoDate: string): Date {
+  const parts = String(isoDate || '').split('-').map(Number);
+  if (parts.length === 3 && !parts.some(isNaN)) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+export function toIsoDateLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function isWeekendIso(isoDate: string): boolean {
+  if (!isoDate) return false;
+  const d = parseIsoDateLocal(isoDate);
+  const dow = d.getDay();
+  return dow === 0 || dow === 6;
+}
+
+export function ensureWeekdayIso(isoDate: string): string {
+  const d = parseIsoDateLocal(isoDate);
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return toIsoDateLocal(d);
+}
+
+export function nextWeekdayIso(isoDate: string): string {
+  const d = parseIsoDateLocal(isoDate);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return toIsoDateLocal(d);
+}
+
+export function generateWeekdayDates(startIso: string, count: number): string[] {
+  const dates: string[] = [];
+  let cursor = ensureWeekdayIso(startIso);
+  for (let i = 0; i < count; i++) {
+    dates.push(cursor);
+    cursor = nextWeekdayIso(cursor);
+  }
+  return dates;
+}
+
+export function applyExamStartDate(examDays: ExamDay[], startIso: string): ExamDay[] {
+  const dates = generateWeekdayDates(startIso, examDays.length);
+  return examDays.map((day, idx) => ({
+    ...day,
+    date: dates[idx] || day.date,
+  }));
+}
+
+export function normalizeExamDaysToWeekdays(
+  examDays: ExamDay[],
+  fallbackStartDate = '2026-06-02'
+): ExamDay[] {
+  if (examDays.length === 0) return examDays;
+  let changed = false;
+  const out: ExamDay[] = [];
+  for (let i = 0; i < examDays.length; i++) {
+    const rawDate = examDays[i].date || fallbackStartDate;
+    let candidate = ensureWeekdayIso(rawDate);
+    if (i > 0) {
+      const prevDate = out[i - 1].date;
+      if (candidate <= prevDate) {
+        candidate = nextWeekdayIso(prevDate);
+      }
+    }
+    if (candidate !== examDays[i].date) {
+      changed = true;
+      out.push({ ...examDays[i], date: candidate });
+    } else {
+      out.push(examDays[i]);
+    }
+  }
+  return changed ? out : examDays;
+}
+
 export function formatIndonesianDate(isoDate: string): {
   dayName: string;
   fullDate: string;
@@ -198,12 +282,8 @@ export function resizeExamDays(
 
   while (next.length < safeCount) {
     const prevDateStr = next[next.length - 1]?.date || fallbackStartDate;
-    const baseDate = new Date(prevDateStr);
-    if (isNaN(baseDate.getTime())) {
-      baseDate.setTime(Date.now());
-    }
-    baseDate.setDate(baseDate.getDate() + 1);
-    const nextIso = baseDate.toISOString().slice(0, 10);
+    const nextIso =
+      next.length === 0 ? ensureWeekdayIso(fallbackStartDate) : nextWeekdayIso(prevDateStr);
     const dayId = `d-${Date.now()}-${next.length + 1}`;
     next.push({
       id: dayId,
@@ -242,18 +322,98 @@ export function getRoomStats(students: Student[], roomCount: number) {
     .map(([room, list]) => ({ room, count: list.length, students: list }));
 }
 
+export function getStudentGradeLevel(kelas: string): string {
+  const clean = (kelas || '').trim().toUpperCase();
+  const romanMatch = clean.match(/^(XII|XI|X|VIII|VII|IX|VI|IV|V|III|II|I)(?:\b|[-_\s/])/);
+  if (romanMatch) return romanMatch[1];
+  const numMatch = clean.match(/^(\d{1,2})(?:\b|[-_\s/A-Z])/);
+  if (numMatch) return numMatch[1];
+  return clean || 'UMUM';
+}
+
+function shuffleInPlace<T>(arr: T[], nextRand: () => number): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(nextRand() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/**
+ * Orders a list of students in one room so every double desk (index 2k & 2k+1)
+ * pairs students from DIFFERENT grade levels (angkatan) whenever mathematically possible
+ * (e.g. Kelas X sits with Kelas XI or XII, never X with X).
+ */
+export function pairStudentsCrossGrade(list: Student[], randSeed = Date.now()): Student[] {
+  if (list.length <= 1) return list;
+  let seed = randSeed % 2147483647;
+  if (seed <= 0) seed += 2147483646;
+  const nextRand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  const pools = new Map<string, Student[]>();
+  for (const st of list) {
+    const grade = getStudentGradeLevel(st.kelas);
+    if (!pools.has(grade)) pools.set(grade, []);
+    pools.get(grade)!.push(st);
+  }
+
+  for (const [g, arr] of pools.entries()) {
+    pools.set(g, shuffleInPlace(arr, nextRand));
+  }
+
+  const ordered: Student[] = [];
+  let prevGrade: string | null = null;
+
+  for (let i = 0; i < list.length; i++) {
+    const isRightSeat = i % 2 === 1;
+    const forbiddenGrade: string | null = isRightSeat ? prevGrade : null;
+
+    const candidates: [string, Student[]][] = Array.from(pools.entries())
+      .filter(([, arr]) => arr.length > 0)
+      .sort((a, b) => {
+        const diff = b[1].length - a[1].length;
+        if (diff !== 0) return diff;
+        return nextRand() - 0.5;
+      });
+
+    // Prefer a grade different from deskmate (or different from previous seat on even index if tied)
+    let chosenEntry: [string, Student[]] | undefined = candidates.find(
+      ([g]) => g !== forbiddenGrade
+    );
+    if (!chosenEntry && !isRightSeat && prevGrade) {
+      const alt = candidates.find(([g]) => g !== prevGrade);
+      if (alt) chosenEntry = alt;
+    }
+    if (!chosenEntry) {
+      chosenEntry = candidates[0];
+    }
+
+    const picked = chosenEntry[1].shift()!;
+    ordered.push(picked);
+    prevGrade = chosenEntry[0];
+  }
+
+  return ordered;
+}
+
 export interface AutoAssignOptions {
   mode: 'interleave' | 'sequential';
   maxPerRoom: number;
   prefix: string;
   startNumber: number;
   regenerateNumbers: boolean;
+  shuffleSeed?: number;
 }
 
 /**
  * Automatically distributes students into rooms and generates sequential exam numbers.
- * - 'interleave': round-robins across classes (e.g. X-1, XII-2, X-2, XI-1...) so adjacent seats
- *   are from different classes, matching standard Indonesian madrasah/school exam seating.
+ * - 'interleave': distributes each grade level (angkatan X, XI, XII) evenly across all rooms
+ *   and pairs every double desk strictly across DIFFERENT grade levels so classmates from the
+ *   same angkatan never sit together at the same desk.
  * - 'sequential': keeps students grouped by class & name order.
  */
 export function autoAssignRoomsAndNumbers(
@@ -266,40 +426,75 @@ export function autoAssignRoomsAndNumbers(
 
   const maxPerRoom = Math.max(1, options.maxPerRoom);
   const roomCount = Math.max(1, Math.ceil(students.length / maxPerRoom));
-
-  let ordered: Student[] = [];
+  const seedBase = options.shuffleSeed ?? Date.now();
 
   if (options.mode === 'interleave') {
-    const byClass = new Map<string, Student[]>();
-    const sortedClasses = [...new Set(students.map((s) => s.kelas || 'Umum'))].sort((a, b) =>
+    let seed = seedBase % 2147483647;
+    if (seed <= 0) seed += 2147483646;
+    const nextRand = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+
+    // Group by grade level (angkatan), shuffle within each grade, then deal round-robin across rooms
+    const byGrade = new Map<string, Student[]>();
+    const grades = [...new Set(students.map((s) => getStudentGradeLevel(s.kelas)))].sort((a, b) =>
       a.localeCompare(b, 'id')
     );
-    for (const cls of sortedClasses) {
-      byClass.set(
-        cls,
-        students
-          .filter((s) => (s.kelas || 'Umum') === cls)
-          .sort((a, b) => a.name.localeCompare(b.name, 'id'))
-      );
+
+    for (const g of grades) {
+      const group = students.filter((s) => getStudentGradeLevel(s.kelas) === g);
+      byGrade.set(g, shuffleInPlace(group, nextRand));
     }
-    const maxLen = Math.max(...Array.from(byClass.values()).map((arr) => arr.length), 0);
-    for (let i = 0; i < maxLen; i++) {
-      for (const cls of sortedClasses) {
-        const group = byClass.get(cls)!;
-        if (i < group.length) {
-          ordered.push(group[i]);
+
+    // Target capacity per room (even distribution)
+    const baseSize = Math.floor(students.length / roomCount);
+    const remainder = students.length % roomCount;
+    const roomCapacities = Array.from(
+      { length: roomCount },
+      (_, r) => baseSize + (r < remainder ? 1 : 0)
+    );
+    const roomBuckets: Student[][] = Array.from({ length: roomCount }, () => []);
+
+    // Deal students from each grade evenly into rooms so each room receives balanced grade counts
+    let roomCursor = 0;
+    for (const g of grades) {
+      const group = byGrade.get(g)!;
+      for (const st of group) {
+        let guard = 0;
+        while (roomBuckets[roomCursor].length >= roomCapacities[roomCursor] && guard < roomCount) {
+          roomCursor = (roomCursor + 1) % roomCount;
+          guard++;
         }
+        roomBuckets[roomCursor].push(st);
+        roomCursor = (roomCursor + 1) % roomCount;
       }
     }
-  } else {
-    ordered = [...students].sort((a, b) => {
-      const clsCmp = (a.kelas || '').localeCompare(b.kelas || '', 'id');
-      if (clsCmp !== 0) return clsCmp;
-      return a.name.localeCompare(b.name, 'id');
-    });
+
+    // Pair seats inside each room strictly cross-grade
+    const updated: Student[] = [];
+    let seq = options.startNumber;
+    for (let r = 0; r < roomCount; r++) {
+      const paired = pairStudentsCrossGrade(roomBuckets[r], seedBase + (r + 1) * 97);
+      for (const st of paired) {
+        const numStr = String(seq++).padStart(4, '0');
+        updated.push({
+          ...st,
+          ruang: r + 1,
+          noPeserta: options.regenerateNumbers ? `${options.prefix}${numStr}` : st.noPeserta,
+        });
+      }
+    }
+
+    return { students: updated, roomCount };
   }
 
-  // Distribute evenly across roomCount without exceeding maxPerRoom
+  const ordered = [...students].sort((a, b) => {
+    const clsCmp = (a.kelas || '').localeCompare(b.kelas || '', 'id');
+    if (clsCmp !== 0) return clsCmp;
+    return a.name.localeCompare(b.name, 'id');
+  });
+
   const baseSize = Math.floor(ordered.length / roomCount);
   const remainder = ordered.length % roomCount;
 
@@ -321,6 +516,28 @@ export function autoAssignRoomsAndNumbers(
   }
 
   return { students: updated, roomCount };
+}
+
+/**
+ * Shuffles room assignments & seating across all configured rooms so every double desk
+ * pairs different grade levels (e.g. X with XI/XII), preserving existing participant numbers.
+ */
+export function randomizeSeatingCrossGrade(
+  students: Student[],
+  roomCount: number,
+  shuffleSeed = Date.now()
+): Student[] {
+  if (students.length === 0) return students;
+  const safeRooms = Math.max(1, roomCount);
+  const { students: assigned } = autoAssignRoomsAndNumbers(students, {
+    mode: 'interleave',
+    maxPerRoom: Math.max(1, Math.ceil(students.length / safeRooms)),
+    prefix: '',
+    startNumber: 1,
+    regenerateNumbers: false,
+    shuffleSeed,
+  });
+  return assigned;
 }
 
 /**

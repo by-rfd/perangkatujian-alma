@@ -309,11 +309,11 @@ export const ExamRulesView: React.FC<ExamRulesViewProps> = ({
           ))}
         </ol>
 
-        <div className="mt-10 flex justify-end pr-10">
+        <div className="mt-5 print:mt-4 flex justify-end pr-8">
           <div className="text-xs text-slate-950 min-w-[200px]">
             <div>{school.titimangsa}</div>
             <div>Ketua {school.singkatanUjian}</div>
-            <div className="h-16" />
+            <div className="h-12" />
             <div className="font-bold underline">{school.ketuaPanitia}</div>
           </div>
         </div>

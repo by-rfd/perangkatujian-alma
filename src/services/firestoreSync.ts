@@ -83,19 +83,37 @@ function sanitizeTracksForFirestore(tracks: string[]): string[] {
 function sanitizeProposalForFirestore(proposal?: ExamProposal): ExamProposal {
   const base = createDefaultProposal();
   const src = proposal ? stripUndefinedDeep(proposal) : base;
+  const pickText = (val: string | undefined, fallback: string | undefined, max = 4000) =>
+    String(val ?? fallback ?? '').slice(0, max);
+
   return {
-    nomorSurat: String(src.nomorSurat ?? base.nomorSurat).slice(0, 120),
-    lampiran: String(src.lampiran ?? base.lampiran).slice(0, 120),
-    perihal: String(src.perihal ?? base.perihal).slice(0, 240),
-    latarBelakang: String(src.latarBelakang ?? base.latarBelakang).slice(0, 4000),
+    nomorSurat: pickText(src.nomorSurat, base.nomorSurat, 120),
+    lampiran: pickText(src.lampiran, base.lampiran, 120),
+    perihal: pickText(src.perihal, base.perihal, 240),
+    kataPengantar: pickText(src.kataPengantar, base.kataPengantar, 4000),
+    latarBelakang: pickText(src.latarBelakang, base.latarBelakang, 4000),
+    pengertian: pickText(src.pengertian, base.pengertian, 4000),
     dasarHukum: (Array.isArray(src.dasarHukum) ? src.dasarHukum : base.dasarHukum)
       .map((s) => String(s || '').slice(0, 500))
       .slice(0, 30),
     tujuanKegiatan: (Array.isArray(src.tujuanKegiatan) ? src.tujuanKegiatan : base.tujuanKegiatan)
       .map((s) => String(s || '').slice(0, 500))
       .slice(0, 30),
-    tempatPelaksanaan: String(src.tempatPelaksanaan ?? base.tempatPelaksanaan).slice(0, 240),
-    penutup: String(src.penutup ?? base.penutup).slice(0, 2000),
+    ruangLingkup: pickText(src.ruangLingkup, base.ruangLingkup, 4000),
+    sasaran: pickText(src.sasaran, base.sasaran, 4000),
+    sistematikaPenulisan: pickText(src.sistematikaPenulisan, base.sistematikaPenulisan, 4000),
+    organisasiKepanitiaan: pickText(src.organisasiKepanitiaan, base.organisasiKepanitiaan, 4000),
+    pembagianTugas: pickText(src.pembagianTugas, base.pembagianTugas, 4000),
+    tahapPerencanaan: pickText(src.tahapPerencanaan, base.tahapPerencanaan, 4000),
+    publikasi: pickText(src.publikasi, base.publikasi, 4000),
+    pengadaanPiranti: pickText(src.pengadaanPiranti, base.pengadaanPiranti, 4000),
+    pengadministrasian: pickText(src.pengadministrasian, base.pengadministrasian, 4000),
+    pelaksanaanPengawasan: pickText(src.pelaksanaanPengawasan, base.pelaksanaanPengawasan, 4000),
+    pemeriksaanPengolahan: pickText(src.pemeriksaanPengolahan, base.pemeriksaanPengolahan, 4000),
+    penilaian: pickText(src.penilaian, base.penilaian, 4000),
+    kegiatanAkhir: pickText(src.kegiatanAkhir, base.kegiatanAkhir, 4000),
+    tempatPelaksanaan: pickText(src.tempatPelaksanaan, base.tempatPelaksanaan, 240),
+    penutup: pickText(src.penutup, base.penutup, 2000),
     budgetItems: (Array.isArray(src.budgetItems) ? src.budgetItems : base.budgetItems)
       .slice(0, 100)
       .map((item, idx) => ({

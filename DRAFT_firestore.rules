@@ -137,8 +137,7 @@ service cloud.firestore {
     match /workspaces/{workspaceId} {
       allow get: if isValidId(workspaceId)
         && isVerifiedUser()
-        && request.auth.uid == workspaceId
-        && (resource == null || existing().ownerId == request.auth.uid);
+        && request.auth.uid == workspaceId;
       allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
 
       allow create: if isVerifiedUser()

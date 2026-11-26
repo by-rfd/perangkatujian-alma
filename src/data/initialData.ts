@@ -1,5 +1,38 @@
-import { ExamAppState, Student } from '../types/exam';
+import { ExamAppState, ExamProposal, Student } from '../types/exam';
 import { getSupervisorColors } from '../utils/examLogic';
+
+export function createDefaultProposal(): ExamProposal {
+  return {
+    nomorSurat: '001/PAN-UJIAN/V/2026',
+    lampiran: '1 (Satu) Berkas',
+    perihal: 'Permohonan Persetujuan & Anggaran Pelaksanaan Ujian',
+    latarBelakang:
+      'Penilaian hasil belajar merupakan bagian integral dari proses pendidikan untuk mengukur ketercapaian kompetensi peserta didik secara objektif, terstruktur, dan akuntabel. Dalam rangka mengevaluasi hasil pembelajaran selama satu semester, panitia menyusun proposal kegiatan ujian ini sebagai pedoman teknis penyelenggaraan sekaligus dasar perencanaan anggaran agar seluruh rangkaian ujian berjalan tertib, aman, dan lancar.',
+    dasarHukum: [
+      'Undang-Undang Nomor 20 Tahun 2003 tentang Sistem Pendidikan Nasional.',
+      'Peraturan Menteri Pendidikan, Kebudayaan, Riset, dan Teknologi tentang Standar Penilaian Pendidikan.',
+      'Kalender Pendidikan dan Program Kerja Tahunan Sekolah / Madrasah Tahun Pelajaran 2025/2026.',
+      'Keputusan Rapat Dewan Guru dan Kepala Madrasah/Sekolah tentang Pembentukan Panitia Pelaksana Ujian.',
+    ],
+    tujuanKegiatan: [
+      'Mengukur pencapaian kompetensi dan pemahaman peserta didik pada seluruh mata pelajaran sesuai kurikulum.',
+      'Menyediakan laporan hasil belajar peserta didik yang valid, objektif, dan dapat dipertanggungjawabkan.',
+      'Menjamin pelaksanaan evaluasi belajar berlangsung tertib, jujur, bebas kendala teknis, dan tepat waktu.',
+      'Mewujudkan tata kelola administrasi kepanitiaan ujian yang rapi dan terstandar.',
+    ],
+    tempatPelaksanaan: 'Ruang Kelas & Lingkungan Sekolah / Madrasah',
+    penutup:
+      'Demikian proposal kegiatan pelaksanaan ujian ini disusun sebagai acuan pelaksanaan tugas kepanitiaan. Atas perhatian, dukungan, dan persetujuan Bapak/Ibu Kepala Madrasah/Sekolah, kami ucapkan terima kasih.',
+    budgetItems: [
+      { id: 'rab-1', uraian: 'Pengadaan & Penggandaan Soal / Server CBT', volume: 1, satuan: 'Paket', hargaSatuan: 750000 },
+      { id: 'rab-2', uraian: 'ATK, Kertas F4/A4, Amplop & Kartu Peserta', volume: 1, satuan: 'Paket', hargaSatuan: 450000 },
+      { id: 'rab-3', uraian: 'Honorarium Kepanitiaan Ujian', volume: 5, satuan: 'Orang', hargaSatuan: 250000 },
+      { id: 'rab-4', uraian: 'Honorarium Pengawas Ruang Ujian', volume: 18, satuan: 'Orang', hargaSatuan: 150000 },
+      { id: 'rab-5', uraian: 'Konsumsi Panitia & Pengawas Harian', volume: 8, satuan: 'Hari', hargaSatuan: 200000 },
+      { id: 'rab-6', uraian: 'Pengolahan Nilai, Koreksi & Dokumentasi Laporan', volume: 1, satuan: 'Paket', hargaSatuan: 350000 },
+    ],
+  };
+}
 
 const RAW_STUDENTS: [string, string, string, number][] = [
   // RUANG 1 (39)
@@ -716,6 +749,7 @@ export const INITIAL_EXAM_STATE: ExamAppState = {
       ],
     },
   ],
+  proposal: createDefaultProposal(),
 };
 
 export const EMPTY_EXAM_STATE: ExamAppState = {
@@ -773,4 +807,5 @@ export const EMPTY_EXAM_STATE: ExamAppState = {
   ],
   supervisorSchedule: {},
   rules: INITIAL_EXAM_STATE.rules,
+  proposal: createDefaultProposal(),
 };

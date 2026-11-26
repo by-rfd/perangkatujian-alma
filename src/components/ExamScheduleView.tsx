@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Eye, Pencil, Plus, Printer, Trash2 } from 'lucide-react';
 import { ExamDay, SchoolIdentity } from '../types/exam';
 import { formatIndonesianDate } from '../utils/examLogic';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import {
   PrintOrientation,
   PrintOrientationToggle,
@@ -13,20 +14,37 @@ interface ExamScheduleViewProps {
   school: SchoolIdentity;
   tracks: string[];
   examDays: ExamDay[];
+  roomCount: number;
   onUpdateTracks: (tracks: string[]) => void;
   onUpdateExamDays: (days: ExamDay[]) => void;
+  onUpdateRoomCount: (count: number) => void;
+  onUpdateDayCount: (count: number) => void;
 }
 
 export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
   school,
   tracks,
   examDays,
+  roomCount,
   onUpdateTracks,
   onUpdateExamDays,
+  onUpdateRoomCount,
+  onUpdateDayCount,
 }) => {
   const [mode, setMode] = useState<'edit' | 'print'>('edit');
   const [newTrack, setNewTrack] = useState('');
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
+  const printSheetRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
+
+  const prepareForPdf = async () => {
+    if (mode !== 'print') {
+      setMode('print');
+      await new Promise((r) => setTimeout(r, 180));
+    }
+  };
 
   const handleAddDay = () => {
     const lastDate = examDays[examDays.length - 1]?.date || school.tanggalMulai || '2026-06-02';
@@ -152,6 +170,16 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
               </button>
             </div>
 
+            <PdfDownloadButton
+              filename={`jadwal-ujian-${slug}`}
+              orientation={orientation}
+              paperSize="A4"
+              marginMm={8}
+              prepareBeforeExport={prepareForPdf}
+              getPageElements={() => (printSheetRef.current ? [printSheetRef.current] : [])}
+              label="Unduh PDF"
+            />
+
             <button
               type="button"
               onClick={() => {
@@ -165,20 +193,47 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
           </div>
         </div>
 
-        {/* Summary Bento Tile */}
+        {/* Summary Bento Tile with Editable Hari & Ruang */}
         <div className="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#0A221B] to-[#0E2430] text-white p-5 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-300">Ringkasan Jadwal</span>
+            <span className="text-xs font-medium text-emerald-300">Atur Hari &amp; Ruang</span>
             <span className="text-[11px] text-slate-300 tabular-nums">
-              {tracks.length} Jurusan/Tingkat
+              {totalSessions} Sesi · {tracks.length} Jurusan
             </span>
           </div>
-          <div className="text-2xl font-extrabold tabular-nums">
-            {examDays.length} Hari · {totalSessions} Sesi
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Hari</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={examDays.length}
+                onChange={(e) =>
+                  onUpdateDayCount(Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
+                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Ruang</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={roomCount}
+                onChange={(e) =>
+                  onUpdateRoomCount(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
+                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+              />
+            </div>
           </div>
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/10">
+
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
             <span className="text-[11px] text-slate-300">
-              Orientasi: A4 {orientation === 'landscape' ? 'Landscape' : 'Portrait'}
+              A4 {orientation === 'landscape' ? 'Landscape' : 'Portrait'}
             </span>
             {mode === 'edit' && (
               <button
@@ -291,12 +346,12 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left">
-                      <thead className="border-b border-slate-100 text-slate-500">
+                      <thead className="bg-white border-b-2 border-slate-200 text-slate-950 font-bold">
                         <tr>
-                          <th className="py-2 px-3 w-16 text-center">Jam</th>
-                          <th className="py-2 px-3 w-36">Waktu</th>
+                          <th className="py-2 px-3 w-16 text-center font-bold">Jam</th>
+                          <th className="py-2 px-3 w-36 font-bold">Waktu</th>
                           {tracks.map((t) => (
-                            <th key={t} className="py-2 px-3">
+                            <th key={t} className="py-2 px-3 font-bold">
                               Mapel {t}
                             </th>
                           ))}
@@ -377,6 +432,7 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
 
       {/* Print Preview & Ctrl+P Fallback */}
       <div
+        ref={printSheetRef}
         className={`print-only-container bg-white border border-slate-200 rounded-xl p-8 max-w-5xl mx-auto ${
           mode === 'edit' ? 'hidden print:block' : ''
         }`}
@@ -388,23 +444,23 @@ export const ExamScheduleView: React.FC<ExamScheduleViewProps> = ({
 
         <table className="w-full border-collapse border border-slate-900 text-xs mt-4">
           <thead>
-            <tr className="bg-slate-100">
-              <th rowSpan={2} className="border border-slate-900 px-2 py-2 text-center w-28">
+            <tr className="bg-white text-slate-950 font-bold">
+              <th rowSpan={2} className="border border-slate-900 px-2 py-2 text-center w-28 font-bold">
                 HARI / TANGGAL
               </th>
-              <th rowSpan={2} className="border border-slate-900 px-2 py-2 text-center w-12">
+              <th rowSpan={2} className="border border-slate-900 px-2 py-2 text-center w-12 font-bold">
                 JAM
               </th>
-              <th rowSpan={2} className="border border-slate-900 px-2 py-2 text-center w-28">
+              <th rowSpan={2} className="border border-slate-900 px-2 py-2 text-center w-28 font-bold">
                 WAKTU
               </th>
-              <th colSpan={tracks.length} className="border border-slate-900 px-2 py-1.5 text-center">
+              <th colSpan={tracks.length} className="border border-slate-900 px-2 py-1.5 text-center font-bold">
                 MATA PELAJARAN
               </th>
             </tr>
-            <tr className="bg-slate-100">
+            <tr className="bg-white text-slate-950 font-bold">
               {tracks.map((t) => (
-                <th key={t} className="border border-slate-900 px-2 py-1.5 text-center">
+                <th key={t} className="border border-slate-900 px-2 py-1.5 text-center font-bold">
                   {t}
                 </th>
               ))}

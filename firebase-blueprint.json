@@ -39,6 +39,10 @@
           "type": "array",
           "description": "List of exam rules articles (max 50)."
         },
+        "proposal": {
+          "type": "object",
+          "description": "Editable exam proposal document configuration and RAB budget table."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

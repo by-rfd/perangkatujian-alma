@@ -7,6 +7,8 @@ import { LogoKemenag, LogoSekolah, OfficialLetterhead } from './SchoolLogos';
 interface SchoolSettingsViewProps {
   state: ExamAppState;
   onUpdateSchool: (updater: SchoolIdentity | ((prev: SchoolIdentity) => SchoolIdentity)) => void;
+  onUpdateRoomCount: (count: number) => void;
+  onUpdateDayCount: (count: number) => void;
   onLoadSampleData: () => void;
   onResetEmpty: () => void;
   onImportStateJson: (newState: ExamAppState) => void;
@@ -55,6 +57,8 @@ function resizeLogoToDataUrl(file: File): Promise<string> {
 export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
   state,
   onUpdateSchool,
+  onUpdateRoomCount,
+  onUpdateDayCount,
   onLoadSampleData,
   onResetEmpty,
   onImportStateJson,
@@ -542,7 +546,7 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelCls}>Max Siswa / Ruang</label>
               <input
@@ -557,14 +561,27 @@ export const SchoolSettingsView: React.FC<SchoolSettingsViewProps> = ({
               />
             </div>
             <div>
-              <label className={labelCls}>Jumlah Ruang Minimal</label>
+              <label className={labelCls}>Jumlah Ruang Ujian</label>
               <input
                 type="number"
                 min={1}
-                max={50}
+                max={100}
                 value={school.jumlahRuang}
                 onChange={(e) =>
-                  updateField('jumlahRuang', Math.max(1, parseInt(e.target.value, 10) || 1))
+                  onUpdateRoomCount(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
+                className={`${fieldCls} font-mono tabular-nums`}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Jumlah Hari Ujian</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={state.examDays.length}
+                onChange={(e) =>
+                  onUpdateDayCount(Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1)))
                 }
                 className={`${fieldCls} font-mono tabular-nums`}
               />

@@ -580,16 +580,16 @@ export const StudentsDatabaseView: React.FC<StudentsDatabaseViewProps> = ({
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
+            <thead className="bg-white border-b-2 border-slate-200 text-slate-950 font-bold">
               <tr>
-                <th className="py-3 px-3 font-semibold w-12">No</th>
-                <th className="py-3 px-3 font-semibold w-44">Foto Peserta</th>
-                <th className="py-3 px-3 font-semibold w-40">No. Peserta</th>
-                <th className="py-3 px-3 font-semibold">Nama Peserta</th>
-                <th className="py-3 px-3 font-semibold w-32">NISN</th>
-                <th className="py-3 px-3 font-semibold w-28">Kelas</th>
-                <th className="py-3 px-3 font-semibold w-24 text-center">Ruang</th>
-                <th className="py-3 px-3 font-semibold w-16 text-right">Hapus</th>
+                <th className="py-3 px-3 font-bold w-12">No</th>
+                <th className="py-3 px-3 font-bold w-44">Foto Peserta</th>
+                <th className="py-3 px-3 font-bold w-40">No. Peserta</th>
+                <th className="py-3 px-3 font-bold">Nama Peserta</th>
+                <th className="py-3 px-3 font-bold w-32">NISN</th>
+                <th className="py-3 px-3 font-bold w-28">Kelas</th>
+                <th className="py-3 px-3 font-bold w-24 text-center">Ruang</th>
+                <th className="py-3 px-3 font-bold w-16 text-right">Hapus</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

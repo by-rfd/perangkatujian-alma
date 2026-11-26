@@ -13,10 +13,12 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { OperationType, db, handleFirestoreError } from '../firebase';
+import { createDefaultProposal } from '../data/initialData';
 import {
   CommitteeMember,
   ExamAppState,
   ExamDay,
+  ExamProposal,
   ExamRule,
   SchoolIdentity,
   Student,
@@ -78,6 +80,34 @@ function sanitizeTracksForFirestore(tracks: string[]): string[] {
   return cleaned.length > 0 ? cleaned : ['UMUM'];
 }
 
+function sanitizeProposalForFirestore(proposal?: ExamProposal): ExamProposal {
+  const base = createDefaultProposal();
+  const src = proposal ? stripUndefinedDeep(proposal) : base;
+  return {
+    nomorSurat: String(src.nomorSurat ?? base.nomorSurat).slice(0, 120),
+    lampiran: String(src.lampiran ?? base.lampiran).slice(0, 120),
+    perihal: String(src.perihal ?? base.perihal).slice(0, 240),
+    latarBelakang: String(src.latarBelakang ?? base.latarBelakang).slice(0, 4000),
+    dasarHukum: (Array.isArray(src.dasarHukum) ? src.dasarHukum : base.dasarHukum)
+      .map((s) => String(s || '').slice(0, 500))
+      .slice(0, 30),
+    tujuanKegiatan: (Array.isArray(src.tujuanKegiatan) ? src.tujuanKegiatan : base.tujuanKegiatan)
+      .map((s) => String(s || '').slice(0, 500))
+      .slice(0, 30),
+    tempatPelaksanaan: String(src.tempatPelaksanaan ?? base.tempatPelaksanaan).slice(0, 240),
+    penutup: String(src.penutup ?? base.penutup).slice(0, 2000),
+    budgetItems: (Array.isArray(src.budgetItems) ? src.budgetItems : base.budgetItems)
+      .slice(0, 100)
+      .map((item, idx) => ({
+        id: String(item.id || `rab-${idx + 1}`).slice(0, 64),
+        uraian: String(item.uraian || '').slice(0, 240),
+        volume: Math.max(0, Number(item.volume) || 0),
+        satuan: String(item.satuan || '').slice(0, 40),
+        hargaSatuan: Math.max(0, Math.round(Number(item.hargaSatuan) || 0)),
+      })),
+  };
+}
+
 export function buildWorkspaceFields(state: ExamAppState): {
   school: SchoolIdentity;
   committee: CommitteeMember[];
@@ -86,6 +116,7 @@ export function buildWorkspaceFields(state: ExamAppState): {
   examDays: ExamDay[];
   supervisorSchedule: SupervisorScheduleMap;
   rules: ExamRule[];
+  proposal: ExamProposal;
 } {
   return {
     school: sanitizeSchoolForFirestore(state.school),
@@ -95,6 +126,7 @@ export function buildWorkspaceFields(state: ExamAppState): {
     examDays: stripUndefinedDeep((state.examDays || []).slice(0, 30)),
     supervisorSchedule: stripUndefinedDeep(state.supervisorSchedule || {}),
     rules: stripUndefinedDeep((state.rules || []).slice(0, 50)),
+    proposal: sanitizeProposalForFirestore(state.proposal),
   };
 }
 
@@ -199,6 +231,7 @@ export function subscribeWorkspace(
           examDays: (raw.examDays as ExamDay[]) || [],
           supervisorSchedule: (raw.supervisorSchedule as SupervisorScheduleMap) || {},
           rules: (raw.rules as ExamRule[]) || [],
+          proposal: sanitizeProposalForFirestore(raw.proposal as ExamProposal | undefined),
         },
       });
     },

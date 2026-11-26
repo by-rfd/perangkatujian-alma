@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Globe, MessageCircle, Printer, Search, Share2, User } from 'lucide-react';
 import { CommitteeMember, SchoolIdentity, Student } from '../types/exam';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import {
   PrintOrientation,
   PrintOrientationToggle,
@@ -21,6 +22,10 @@ export const StudentCardsView: React.FC<StudentCardsViewProps> = ({
 }) => {
   const [filterRuang, setFilterRuang] = useState<string>('1');
   const [search, setSearch] = useState('');
+  const studentPagesRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -85,6 +90,22 @@ export const StudentCardsView: React.FC<StudentCardsViewProps> = ({
               ))}
             </select>
 
+            <PdfDownloadButton
+              filename={`kartu-peserta-${slug}`}
+              orientation="portrait"
+              paperSize="A4"
+              marginMm={6}
+              disabled={filtered.length === 0}
+              getPageElements={() =>
+                studentPagesRef.current
+                  ? Array.from(
+                      studentPagesRef.current.querySelectorAll<HTMLElement>('[data-pdf-page]')
+                    )
+                  : []
+              }
+              label="Unduh PDF"
+            />
+
             <button
               type="button"
               onClick={() => window.print()}
@@ -112,10 +133,11 @@ export const StudentCardsView: React.FC<StudentCardsViewProps> = ({
           Tidak ada kartu peserta untuk ditampilkan.
         </div>
       ) : (
-        <div className="space-y-6">
+        <div ref={studentPagesRef} className="space-y-6">
           {pages.map((chunk, pIdx) => (
             <div
               key={pIdx}
+              data-pdf-page="true"
               className={`print-only-container a4-cards-portrait bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 mx-auto shadow-sm print:shadow-none print:rounded-none ${
                 pIdx < pages.length - 1 ? 'print-page-break' : ''
               }`}
@@ -238,6 +260,10 @@ interface CommitteeCardsViewProps {
 
 export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, committee }) => {
   const [orientation, setOrientation] = useState<PrintOrientation>('portrait');
+  const committeePagesRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
   const pages = useMemo(() => {
     const chunks: CommitteeMember[][] = [];
@@ -263,6 +289,21 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
 
           <div className="flex flex-wrap items-center gap-2">
             <PrintOrientationToggle value={orientation} onChange={setOrientation} />
+            <PdfDownloadButton
+              filename={`kartu-panitia-${slug}`}
+              orientation={orientation}
+              paperSize="A4"
+              marginMm={7}
+              disabled={committee.length === 0}
+              getPageElements={() =>
+                committeePagesRef.current
+                  ? Array.from(
+                      committeePagesRef.current.querySelectorAll<HTMLElement>('[data-pdf-page]')
+                    )
+                  : []
+              }
+              label="Unduh PDF"
+            />
             <button
               type="button"
               onClick={() => window.print()}
@@ -290,10 +331,11 @@ export const CommitteeCardsView: React.FC<CommitteeCardsViewProps> = ({ school, 
           Belum ada data panitia. Tambahkan di menu Panitia &amp; Pengawas.
         </div>
       ) : (
-        <div className="space-y-6">
+        <div ref={committeePagesRef} className="space-y-6">
           {pages.map((chunk, pIdx) => (
             <div
               key={pIdx}
+              data-pdf-page="true"
               className={`print-only-container bg-white border border-slate-200 rounded-xl p-6 max-w-4xl mx-auto ${
                 pIdx < pages.length - 1 ? 'print-page-break' : ''
               }`}

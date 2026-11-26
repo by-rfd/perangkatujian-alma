@@ -27,13 +27,18 @@ import { CommitteeAndSupervisorsView } from './components/CommitteeAndSupervisor
 import { DashboardView } from './components/DashboardView';
 import { CommitteeCardsView, StudentCardsView } from './components/ExamCardsView';
 import { ExamScheduleView } from './components/ExamScheduleView';
+import { ProposalView } from './components/ProposalView';
 import { DoorSignsView, ExamRulesView } from './components/RulesAndDoorsView';
 import { SchoolSettingsView } from './components/SchoolSettingsView';
 import { SeatingPlanView } from './components/SeatingPlanView';
 import { Sidebar } from './components/Sidebar';
 import { StudentsDatabaseView } from './components/StudentsDatabaseView';
 import { SupervisorScheduleView } from './components/SupervisorScheduleView';
-import { EMPTY_EXAM_STATE, INITIAL_EXAM_STATE } from './data/initialData';
+import {
+  EMPTY_EXAM_STATE,
+  INITIAL_EXAM_STATE,
+  createDefaultProposal,
+} from './data/initialData';
 import { auth, googleProvider } from './firebase';
 import {
   buildWorkspaceFields,
@@ -50,6 +55,8 @@ import {
   downloadStateBackup,
   getActiveSessionsList,
   getEffectiveRoomCount,
+  rebalanceStudentsToRooms,
+  resizeExamDays,
 } from './utils/examLogic';
 
 const STORAGE_KEY = 'perangkat_ujian_state_v1';
@@ -68,6 +75,7 @@ const TAB_LABELS: Record<TabId, string> = {
   'daftar-hadir-peserta': 'Daftar Hadir Peserta',
   'daftar-hadir-pengawas': 'Daftar Hadir Pengawas & Panitia',
   'tata-tertib': 'Tata Tertib Peserta',
+  proposal: 'Proposal Ujian',
   administrasi: 'Administrasi & Sampul',
 };
 
@@ -79,7 +87,10 @@ function loadInitialState(): ExamAppState {
     if (!parsed || !parsed.school || !Array.isArray(parsed.students)) {
       return INITIAL_EXAM_STATE;
     }
-    return parsed;
+    return {
+      ...parsed,
+      proposal: parsed.proposal ?? createDefaultProposal(),
+    };
   } catch {
     return INITIAL_EXAM_STATE;
   }
@@ -237,7 +248,7 @@ export default function App() {
         latestWorkspaceFields = payload.workspaceFields ?? null;
 
         if (cloudReadyRef.current && latestWorkspaceFields) {
-          const nextWsSig = JSON.stringify(latestWorkspaceFields);
+          const nextWsSig = workspaceSignature({ ...latestWorkspaceFields, students: [] });
           if (nextWsSig !== lastSyncedWorkspaceSigRef.current) {
             lastSyncedWorkspaceSigRef.current = nextWsSig;
             setState((prev) => ({
@@ -441,6 +452,28 @@ export default function App() {
     });
   };
 
+  const handleUpdateRoomCount = (nextCount: number) => {
+    const safeCount = Math.min(200, Math.max(1, Math.round(nextCount) || 1));
+    setState((prev) => ({
+      ...prev,
+      school: { ...prev.school, jumlahRuang: safeCount },
+      students: rebalanceStudentsToRooms(prev.students, safeCount, false),
+    }));
+  };
+
+  const handleUpdateDayCount = (nextCount: number) => {
+    const safeCount = Math.min(30, Math.max(1, Math.round(nextCount) || 1));
+    setState((prev) => ({
+      ...prev,
+      examDays: resizeExamDays(
+        prev.examDays,
+        safeCount,
+        prev.tracks,
+        prev.school.tanggalMulai
+      ),
+    }));
+  };
+
   return (
     <div className="min-h-screen flex bg-[#F6F8FA] text-slate-900 print:block print:min-h-0 print:bg-white">
       <Sidebar
@@ -602,9 +635,16 @@ export default function App() {
                     school: typeof updater === 'function' ? updater(prev.school) : updater,
                   }))
                 }
+                onUpdateRoomCount={handleUpdateRoomCount}
+                onUpdateDayCount={handleUpdateDayCount}
                 onLoadSampleData={() => setState(INITIAL_EXAM_STATE)}
                 onResetEmpty={() => setState(EMPTY_EXAM_STATE)}
-                onImportStateJson={(newState) => setState(newState)}
+                onImportStateJson={(newState) =>
+                  setState({
+                    ...newState,
+                    proposal: newState.proposal ?? createDefaultProposal(),
+                  })
+                }
               />
             )}
 
@@ -624,12 +664,7 @@ export default function App() {
                 students={state.students}
                 school={state.school}
                 onUpdateStudents={(students) => setState((prev) => ({ ...prev, students }))}
-                onUpdateRoomCount={(jumlahRuang) =>
-                  setState((prev) => ({
-                    ...prev,
-                    school: { ...prev.school, jumlahRuang },
-                  }))
-                }
+                onUpdateRoomCount={handleUpdateRoomCount}
               />
             )}
 
@@ -638,8 +673,11 @@ export default function App() {
                 school={state.school}
                 tracks={state.tracks}
                 examDays={state.examDays}
+                roomCount={roomCount}
                 onUpdateTracks={(tracks) => setState((prev) => ({ ...prev, tracks }))}
                 onUpdateExamDays={(examDays) => setState((prev) => ({ ...prev, examDays }))}
+                onUpdateRoomCount={handleUpdateRoomCount}
+                onUpdateDayCount={handleUpdateDayCount}
               />
             )}
 
@@ -653,6 +691,11 @@ export default function App() {
                 onUpdateSchedule={(supervisorSchedule) =>
                   setState((prev) => ({ ...prev, supervisorSchedule }))
                 }
+                onUpdateSupervisors={(supervisors) =>
+                  setState((prev) => ({ ...prev, supervisors }))
+                }
+                onUpdateRoomCount={handleUpdateRoomCount}
+                onUpdateDayCount={handleUpdateDayCount}
               />
             )}
 
@@ -687,6 +730,8 @@ export default function App() {
                 students={state.students}
                 examDays={state.examDays}
                 roomCount={roomCount}
+                onUpdateRoomCount={handleUpdateRoomCount}
+                onUpdateDayCount={handleUpdateDayCount}
               />
             )}
 
@@ -698,6 +743,8 @@ export default function App() {
                 committee={state.committee}
                 roomCount={roomCount}
                 schedule={state.supervisorSchedule}
+                onUpdateRoomCount={handleUpdateRoomCount}
+                onUpdateDayCount={handleUpdateDayCount}
               />
             )}
 
@@ -706,6 +753,22 @@ export default function App() {
                 school={state.school}
                 rules={state.rules}
                 onUpdateRules={(rules) => setState((prev) => ({ ...prev, rules }))}
+              />
+            )}
+
+            {activeTab === 'proposal' && (
+              <ProposalView
+                school={state.school}
+                committee={state.committee}
+                supervisors={state.supervisors}
+                students={state.students}
+                tracks={state.tracks}
+                examDays={state.examDays}
+                roomCount={roomCount}
+                proposal={state.proposal ?? createDefaultProposal()}
+                onUpdateProposal={(proposal) =>
+                  setState((prev) => ({ ...prev, proposal }))
+                }
               />
             )}
 

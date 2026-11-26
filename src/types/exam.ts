@@ -6,12 +6,13 @@ export type TabId =
   | 'jadwal-ujian'
   | 'jadwal-pengawas'
   | 'denah'
-  | 'daftar-hadir-peserta'
-  | 'daftar-hadir-pengawas'
+  | 'no-pintu'
   | 'kartu-ujian'
   | 'kartu-panitia'
+  | 'daftar-hadir-peserta'
+  | 'daftar-hadir-pengawas'
   | 'tata-tertib'
-  | 'no-pintu'
+  | 'proposal'
   | 'administrasi';
 
 export interface SchoolIdentity {
@@ -56,6 +57,7 @@ export interface Supervisor {
   code: number;
   name: string;
   color: string;
+  targetShifts?: number;
 }
 
 export interface Student {
@@ -90,6 +92,26 @@ export interface ExamRule {
   subItems?: string[];
 }
 
+export interface ProposalBudgetItem {
+  id: string;
+  uraian: string;
+  volume: number;
+  satuan: string;
+  hargaSatuan: number;
+}
+
+export interface ExamProposal {
+  nomorSurat: string;
+  lampiran: string;
+  perihal: string;
+  latarBelakang: string;
+  dasarHukum: string[];
+  tujuanKegiatan: string[];
+  tempatPelaksanaan: string;
+  penutup: string;
+  budgetItems: ProposalBudgetItem[];
+}
+
 export interface ExamAppState {
   school: SchoolIdentity;
   committee: CommitteeMember[];
@@ -99,4 +121,5 @@ export interface ExamAppState {
   examDays: ExamDay[];
   supervisorSchedule: SupervisorScheduleMap;
   rules: ExamRule[];
+  proposal?: ExamProposal;
 }

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Printer } from 'lucide-react';
 import {
   CommitteeMember,
@@ -9,6 +9,7 @@ import {
   SupervisorScheduleMap,
 } from '../types/exam';
 import { formatIndonesianDate } from '../utils/examLogic';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import {
   PrintOrientation,
   PrintOrientationToggle,
@@ -21,6 +22,8 @@ interface StudentAttendanceViewProps {
   students: Student[];
   examDays: ExamDay[];
   roomCount: number;
+  onUpdateRoomCount: (count: number) => void;
+  onUpdateDayCount: (count: number) => void;
 }
 
 export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
@@ -28,10 +31,16 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
   students,
   examDays,
   roomCount,
+  onUpdateRoomCount,
+  onUpdateDayCount,
 }) => {
   const [selectedRoom, setSelectedRoom] = useState<number>(1);
   const [printAll, setPrintAll] = useState(false);
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
+  const sheetsContainerRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
   const studentsByRoom = useMemo(() => {
     const map = new Map<number, Student[]>();
@@ -88,6 +97,21 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
               Cetak Semua Ruang
             </label>
 
+            <PdfDownloadButton
+              filename={`daftar-hadir-peserta-${slug}`}
+              orientation={orientation}
+              paperSize="A4"
+              marginMm={6}
+              getPageElements={() =>
+                sheetsContainerRef.current
+                  ? Array.from(
+                      sheetsContainerRef.current.querySelectorAll<HTMLElement>('[data-pdf-page]')
+                    )
+                  : []
+              }
+              label="Unduh PDF"
+            />
+
             <button
               type="button"
               onClick={() => window.print()}
@@ -99,28 +123,57 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
           </div>
         </div>
 
-        <div className="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#0A221B] to-[#0E2430] text-white p-5 flex flex-col justify-between gap-2">
+        <div className="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#0A221B] to-[#0E2430] text-white p-5 flex flex-col justify-between gap-3">
           <div className="text-xs font-medium text-emerald-300">
-            Format Kertas: A4 {orientation === 'landscape' ? 'Landscape (297 × 210 mm)' : 'Portrait (210 × 297 mm)'}
+            Atur Jumlah Ruang &amp; Hari Cetak
           </div>
-          <div className="text-2xl font-extrabold tabular-nums">
-            {printAll
-              ? `${roomCount} Ruang`
-              : `${studentsByRoom.get(Math.min(selectedRoom, roomCount))?.length ?? 0} Siswa`}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Ruang</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={roomCount}
+                onChange={(e) =>
+                  onUpdateRoomCount(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
+                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Hari</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={examDays.length}
+                onChange={(e) =>
+                  onUpdateDayCount(Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
+                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+              />
+            </div>
           </div>
           <div className="text-[11px] text-slate-300 pt-2 border-t border-white/10 tabular-nums">
-            {examDays.length} kolom tanda tangan hari ujian
+            {printAll
+              ? `${roomCount} ruang siap cetak`
+              : `Ruang ${Math.min(selectedRoom, roomCount)} (${
+                  studentsByRoom.get(Math.min(selectedRoom, roomCount))?.length ?? 0
+                } siswa)`}{' '}
+            · {examDays.length} hari ujian
           </div>
         </div>
       </section>
 
-      <div className="space-y-6">
+      <div ref={sheetsContainerRef} className="space-y-6">
         {roomsToRender.map((roomNo, idx) => {
           const list = studentsByRoom.get(roomNo) ?? [];
           const isDense = list.length > 30;
           return (
             <div
               key={roomNo}
+              data-pdf-page="true"
               className={`print-only-container ${sheetWidthCls} bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 mx-auto shadow-sm overflow-x-auto print:overflow-visible print:rounded-none print:shadow-none ${
                 idx < roomsToRender.length - 1 ? 'print-page-break' : ''
               }`}
@@ -139,7 +192,7 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
                 <div className="text-sm font-extrabold uppercase tracking-wide text-slate-950">
                   DAFTAR HADIR PESERTA
                 </div>
-                <div className="text-xs font-extrabold uppercase text-emerald-950 bg-emerald-50 border border-emerald-700/30 px-3 py-0.5 rounded-md print:rounded-none w-28 text-center">
+                <div className="text-xs font-extrabold uppercase text-slate-950 bg-white border border-slate-800 px-3 py-0.5 rounded-md print:rounded-none w-28 text-center">
                   RUANG {String(roomNo).padStart(2, '0')}
                 </div>
               </div>
@@ -150,28 +203,28 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
                 }`}
               >
                 <thead>
-                  <tr className="bg-[#0F2E24] text-white">
+                  <tr className="bg-white text-slate-950 font-bold">
                     <th
                       rowSpan={2}
-                      className="border border-slate-700 px-1.5 py-1.5 w-8 text-center font-bold"
+                      className="border border-slate-800 px-1.5 py-1.5 w-8 text-center font-bold"
                     >
                       NO
                     </th>
                     <th
                       rowSpan={2}
-                      className="border border-slate-700 px-2 py-1.5 w-28 text-center font-bold"
+                      className="border border-slate-800 px-2 py-1.5 w-28 text-center font-bold"
                     >
                       NO PESERTA
                     </th>
                     <th
                       rowSpan={2}
-                      className="border border-slate-700 px-2 py-1.5 text-left min-w-[165px] font-bold"
+                      className="border border-slate-800 px-2 py-1.5 text-left min-w-[165px] font-bold"
                     >
                       NAMA PESERTA
                     </th>
                     <th
                       rowSpan={2}
-                      className="border border-slate-700 px-1.5 py-1.5 w-16 text-center font-bold"
+                      className="border border-slate-800 px-1.5 py-1.5 w-16 text-center font-bold"
                     >
                       KELAS
                     </th>
@@ -180,20 +233,20 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
                       return (
                         <th
                           key={day.id}
-                          className="border border-slate-700 px-1 py-1 text-center font-bold"
+                          className="border border-slate-800 px-1 py-1 text-center font-bold"
                         >
                           {fd.dayName}
                         </th>
                       );
                     })}
                   </tr>
-                  <tr className="bg-emerald-50 text-emerald-950">
+                  <tr className="bg-white text-slate-950 font-bold">
                     {examDays.map((day) => {
                       const fd = formatIndonesianDate(day.date);
                       return (
                         <th
                           key={day.id}
-                          className="border border-slate-700 px-1 py-1 text-center font-mono text-[9px] font-bold whitespace-nowrap"
+                          className="border border-slate-800 px-1 py-1 text-center font-mono text-[9px] font-bold whitespace-nowrap"
                         >
                           {fd.shortDate}
                         </th>
@@ -274,6 +327,8 @@ interface SupervisorAttendanceViewProps {
   committee: CommitteeMember[];
   roomCount: number;
   schedule: SupervisorScheduleMap;
+  onUpdateRoomCount: (count: number) => void;
+  onUpdateDayCount: (count: number) => void;
 }
 
 export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> = ({
@@ -283,10 +338,16 @@ export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> =
   committee,
   roomCount,
   schedule,
+  onUpdateRoomCount,
+  onUpdateDayCount,
 }) => {
   const [sheetTab, setSheetTab] = useState<'pengawas' | 'panitia'>('pengawas');
   const [autofillNames, setAutofillNames] = useState(true);
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
   const supervisorByCode = useMemo(() => {
     const map = new Map<number, string>();
@@ -346,6 +407,15 @@ export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> =
               </label>
             )}
 
+            <PdfDownloadButton
+              filename={`daftar-hadir-${sheetTab}-${slug}`}
+              orientation={orientation}
+              paperSize="A4"
+              marginMm={6}
+              getPageElements={() => (sheetRef.current ? [sheetRef.current] : [])}
+              label="Unduh PDF"
+            />
+
             <button
               type="button"
               onClick={() => window.print()}
@@ -357,23 +427,50 @@ export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> =
           </div>
         </div>
 
-        <div className="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#0A221B] to-[#0E2430] text-white p-5 flex flex-col justify-between gap-2">
+        <div className="xl:col-span-4 rounded-2xl bg-gradient-to-br from-[#0A221B] to-[#0E2430] text-white p-5 flex flex-col justify-between gap-3">
           <div className="text-xs font-medium text-emerald-300">
-            {sheetTab === 'pengawas' ? 'Matriks Hadir Pengawas' : 'Matriks Hadir Panitia'}
+            {sheetTab === 'pengawas' ? 'Atur Ruang & Hari Pengawas' : 'Atur Kolom Hari Panitia'}
           </div>
-          <div className="text-2xl font-extrabold tabular-nums">
-            {sheetTab === 'pengawas'
-              ? `${roomCount} Ruang × ${examDays.length} Hari`
-              : `${committee.length} Panitia`}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Ruang</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={roomCount}
+                onChange={(e) =>
+                  onUpdateRoomCount(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
+                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Jumlah Hari</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={examDays.length}
+                onChange={(e) =>
+                  onUpdateDayCount(Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
+                className="w-full px-2.5 py-1.5 text-sm font-extrabold tabular-nums bg-white/15 border border-white/25 rounded-xl text-white focus:outline-none focus:border-emerald-300"
+              />
+            </div>
           </div>
           <div className="text-[11px] text-slate-300 pt-2 border-t border-white/10 tabular-nums">
-            A4 {orientation === 'landscape' ? 'Landscape (297 × 210 mm)' : 'Portrait (210 × 297 mm)'}
+            A4 {orientation === 'landscape' ? 'Landscape' : 'Portrait'} ·{' '}
+            {sheetTab === 'pengawas'
+              ? `${roomCount} Ruang × ${examDays.length} Hari`
+              : `${committee.length} Panitia × ${examDays.length} Hari`}
           </div>
         </div>
       </section>
 
       {sheetTab === 'pengawas' ? (
         <div
+          ref={sheetRef}
           className={`print-only-container ${sheetWidthCls} bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 mx-auto shadow-sm overflow-x-auto print:overflow-visible print:rounded-none print:shadow-none`}
         >
           <OfficialLetterhead
@@ -385,50 +482,50 @@ export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> =
 
           <table className="w-full table-fixed border-collapse border border-slate-800 text-[9px] print:text-[8px] leading-tight">
             <thead>
-              <tr className="bg-[#0F2E24] text-white">
+              <tr className="bg-white text-slate-950 font-bold">
                 <th
                   rowSpan={3}
-                  className="border border-slate-700 px-1 py-1 w-6 text-center font-bold"
+                  className="border border-slate-800 px-1 py-1 w-6 text-center font-bold"
                 >
                   NO
                 </th>
                 <th
                   rowSpan={3}
-                  className="border border-slate-700 px-1.5 py-1 w-[94px] text-center font-bold"
+                  className="border border-slate-800 px-1.5 py-1 w-[94px] text-center font-bold"
                 >
                   HARI / TANGGAL
                 </th>
                 <th
                   rowSpan={3}
-                  className="border border-slate-700 px-0.5 py-1 w-7 text-center font-bold"
+                  className="border border-slate-800 px-0.5 py-1 w-7 text-center font-bold"
                 >
                   JAM
                 </th>
                 <th
                   colSpan={roomCount * 2}
-                  className="border border-slate-700 px-2 py-1 text-center font-bold tracking-wider uppercase"
+                  className="border border-slate-800 px-2 py-1 text-center font-bold tracking-wider uppercase"
                 >
                   RUANG UJIAN
                 </th>
               </tr>
-              <tr className="bg-emerald-50 text-emerald-950">
+              <tr className="bg-white text-slate-950 font-bold">
                 {Array.from({ length: roomCount }, (_, i) => i + 1).map((r) => (
                   <th
                     key={r}
                     colSpan={2}
-                    className="border border-slate-700 px-1 py-0.5 text-center font-extrabold tabular-nums"
+                    className="border border-slate-800 px-1 py-0.5 text-center font-bold tabular-nums"
                   >
                     RUANG {r}
                   </th>
                 ))}
               </tr>
-              <tr className="bg-slate-100 text-slate-800 text-[7.5px]">
+              <tr className="bg-white text-slate-950 font-bold text-[7.5px]">
                 {Array.from({ length: roomCount }, (_, i) => i + 1).map((r) => (
                   <React.Fragment key={r}>
-                    <th className="border border-slate-700 px-0.5 py-0.5 text-center font-bold">
+                    <th className="border border-slate-800 px-0.5 py-0.5 text-center font-bold">
                       NAMA GURU
                     </th>
-                    <th className="border border-slate-700 px-0.5 py-0.5 text-center w-[28px] font-bold">
+                    <th className="border border-slate-800 px-0.5 py-0.5 text-center w-[28px] font-bold">
                       PARAF
                     </th>
                   </React.Fragment>
@@ -502,6 +599,7 @@ export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> =
       ) : (
         /* Daftar Hadir Panitia */
         <div
+          ref={sheetRef}
           className={`print-only-container ${sheetWidthCls} bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 mx-auto shadow-sm overflow-x-auto print:overflow-visible print:rounded-none print:shadow-none`}
         >
           <OfficialLetterhead
@@ -517,30 +615,30 @@ export const SupervisorAttendanceView: React.FC<SupervisorAttendanceViewProps> =
 
           <table className="w-full border-collapse border border-slate-800 text-xs">
             <thead>
-              <tr className="bg-[#0F2E24] text-white">
-                <th rowSpan={2} className="border border-slate-700 px-2 py-2 w-10 text-center font-bold">
+              <tr className="bg-white text-slate-950 font-bold">
+                <th rowSpan={2} className="border border-slate-800 px-2 py-2 w-10 text-center font-bold">
                   NO
                 </th>
                 <th
                   rowSpan={2}
-                  className="border border-slate-700 px-3 py-2 text-left min-w-[180px] font-bold"
+                  className="border border-slate-800 px-3 py-2 text-left min-w-[180px] font-bold"
                 >
                   NAMA PANITIA
                 </th>
-                <th rowSpan={2} className="border border-slate-700 px-3 py-2 text-center w-36 font-bold">
+                <th rowSpan={2} className="border border-slate-800 px-3 py-2 text-center w-36 font-bold">
                   JABATAN
                 </th>
-                <th colSpan={examDays.length} className="border border-slate-700 px-2 py-1.5 text-center font-bold">
+                <th colSpan={examDays.length} className="border border-slate-800 px-2 py-1.5 text-center font-bold">
                   TANDA TANGAN
                 </th>
               </tr>
-              <tr className="bg-emerald-50 text-emerald-950">
+              <tr className="bg-white text-slate-950 font-bold">
                 {examDays.map((day) => {
                   const fd = formatIndonesianDate(day.date);
                   return (
                     <th
                       key={day.id}
-                      className="border border-slate-700 px-1.5 py-1.5 text-center text-[10px] font-bold whitespace-nowrap"
+                      className="border border-slate-800 px-1.5 py-1.5 text-center text-[10px] font-bold whitespace-nowrap"
                     >
                       <div>{fd.dayName}</div>
                       <div className="font-mono text-[9.5px]">{fd.shortDate}</div>

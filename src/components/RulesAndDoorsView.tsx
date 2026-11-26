@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Eye, Pencil, Plus, Printer, Trash2 } from 'lucide-react';
 import { ExamRule, SchoolIdentity } from '../types/exam';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import {
   PrintOrientation,
   PrintOrientationToggle,
@@ -125,6 +126,17 @@ export const ExamRulesView: React.FC<ExamRulesViewProps> = ({
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [orientation, setOrientation] = useState<PrintOrientation>('portrait');
+  const rulesSheetRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
+
+  const prepareRulesForPdf = async () => {
+    if (editMode) {
+      setEditMode(false);
+      await new Promise((r) => setTimeout(r, 180));
+    }
+  };
 
   const renderText = (txt: string) =>
     txt.replace(/\{\{SINGKATAN\}\}/g, school.singkatanUjian || 'UJIAN');
@@ -159,6 +171,15 @@ export const ExamRulesView: React.FC<ExamRulesViewProps> = ({
               {editMode ? <Eye className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
               {editMode ? 'Pratinjau Dokumen' : 'Edit Poin Tata Tertib'}
             </button>
+            <PdfDownloadButton
+              filename={`tata-tertib-${slug}`}
+              orientation={orientation}
+              paperSize="A4"
+              marginMm={10}
+              prepareBeforeExport={prepareRulesForPdf}
+              getPageElements={() => (rulesSheetRef.current ? [rulesSheetRef.current] : [])}
+              label="Unduh PDF"
+            />
             <button
               type="button"
               onClick={() => {
@@ -255,6 +276,7 @@ export const ExamRulesView: React.FC<ExamRulesViewProps> = ({
       )}
 
       <div
+        ref={rulesSheetRef}
         className={`print-only-container bg-white border border-slate-200 rounded-xl p-10 mx-auto text-slate-950 ${
           orientation === 'landscape' ? 'max-w-5xl' : 'max-w-4xl'
         } ${editMode ? 'hidden print:block' : ''}`}
@@ -309,6 +331,10 @@ export const DoorSignsView: React.FC<DoorSignsViewProps> = ({ school, roomCount 
   const [selectedView, setSelectedView] = useState<'all-doors' | 'single-door' | 'quiet'>('all-doors');
   const [singleRoom, setSingleRoom] = useState(1);
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
+  const doorsPagesRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
   const doorsToRender =
     selectedView === 'quiet'
@@ -377,6 +403,19 @@ export const DoorSignsView: React.FC<DoorSignsViewProps> = ({ school, roomCount 
               </select>
             )}
 
+            <PdfDownloadButton
+              filename={`nomor-pintu-poster-${slug}`}
+              orientation={orientation}
+              paperSize="A4"
+              marginMm={6}
+              getPageElements={() =>
+                doorsPagesRef.current
+                  ? Array.from(doorsPagesRef.current.querySelectorAll<HTMLElement>('[data-pdf-page]'))
+                  : []
+              }
+              label="Unduh PDF"
+            />
+
             <button
               type="button"
               onClick={() => window.print()}
@@ -402,10 +441,11 @@ export const DoorSignsView: React.FC<DoorSignsViewProps> = ({ school, roomCount 
         </div>
       </section>
 
-      <div className="space-y-6">
+      <div ref={doorsPagesRef} className="space-y-6">
         {doorsToRender.map((roomNo, idx) => (
           <div
             key={roomNo}
+            data-pdf-page="true"
             className={`print-only-container ${
               idx < doorsToRender.length - 1 ? 'print-page-break' : ''
             }`}
@@ -415,7 +455,7 @@ export const DoorSignsView: React.FC<DoorSignsViewProps> = ({ school, roomCount 
         ))}
 
         {selectedView === 'quiet' && (
-          <div className="print-only-container">
+          <div data-pdf-page="true" className="print-only-container">
             <QuietExamPoster school={school} orientation={orientation} />
           </div>
         )}

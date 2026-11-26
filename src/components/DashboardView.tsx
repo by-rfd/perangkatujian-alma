@@ -9,6 +9,7 @@ import {
   CreditCard,
   Database,
   DoorClosed,
+  FileSpreadsheet,
   FileText,
   Grid2X2,
   IdCard,
@@ -170,6 +171,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ state, onNavigate 
       label: 'Tata Tertib Peserta',
       meta: 'A4 Portrait · Otomatis',
       icon: ScrollText,
+    },
+    {
+      id: 'proposal',
+      label: 'Proposal Ujian & RAB',
+      meta: 'A4 Portrait · Cetak & PDF',
+      icon: FileSpreadsheet,
     },
   ];
 
@@ -620,15 +627,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ state, onNavigate 
               ) : (
                 <div className="overflow-x-auto border border-slate-200 rounded-xl">
                   <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
+                    <thead className="bg-white border-b-2 border-slate-200 text-slate-950 font-bold">
                       <tr>
-                        <th className="py-2.5 px-3 font-semibold whitespace-nowrap">Ruang</th>
-                        {daySessions.map((ses, sIdx) => (
+                        <th className="py-2.5 px-3 font-bold whitespace-nowrap">Ruang</th>
+                        {daySessions.map((ses) => (
                           <th
                             key={ses.id}
-                            className={`py-2.5 px-3 font-semibold whitespace-nowrap ${
-                              sIdx === safeSessionIdx ? 'bg-emerald-50 text-emerald-900' : ''
-                            }`}
+                            className="py-2.5 px-3 font-bold whitespace-nowrap"
                           >
                             Sesi {ses.jamKe}{' '}
                             <span className="font-normal text-slate-500 tabular-nums">

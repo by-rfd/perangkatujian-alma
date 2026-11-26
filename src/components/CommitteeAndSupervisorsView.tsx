@@ -317,11 +317,11 @@ export const CommitteeAndSupervisorsView: React.FC<CommitteeAndSupervisorsViewPr
 
           <div className="mt-4 overflow-x-auto border border-slate-200/80 rounded-xl">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-xs text-slate-600">
+              <thead className="bg-white border-b-2 border-slate-200 text-xs text-slate-950 font-bold">
                 <tr>
-                  <th className="py-2.5 px-3 font-semibold w-16 text-center">Kode</th>
-                  <th className="py-2.5 px-3 font-semibold">Nama Pengawas</th>
-                  <th className="py-2.5 px-3 font-semibold w-20 text-right">Aksi</th>
+                  <th className="py-2.5 px-3 font-bold w-16 text-center">Kode</th>
+                  <th className="py-2.5 px-3 font-bold">Nama Pengawas</th>
+                  <th className="py-2.5 px-3 font-bold w-20 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

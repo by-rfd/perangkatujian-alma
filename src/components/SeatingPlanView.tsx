@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ArrowLeftRight, Printer } from 'lucide-react';
 import { SchoolIdentity, Student } from '../types/exam';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import {
   PrintOrientation,
   PrintOrientationToggle,
@@ -26,6 +27,10 @@ export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
   const [showKelas, setShowKelas] = useState(false);
   const [swapCandidateId, setSwapCandidateId] = useState<string | null>(null);
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
+  const pagesRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
   const studentsByRoom = useMemo(() => {
     const map = new Map<number, Student[]>();
@@ -109,6 +114,19 @@ export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
               Semua Ruang
             </label>
 
+            <PdfDownloadButton
+              filename={`denah-tempat-duduk-${slug}`}
+              orientation={orientation}
+              paperSize="A4"
+              marginMm={7}
+              getPageElements={() =>
+                pagesRef.current
+                  ? Array.from(pagesRef.current.querySelectorAll<HTMLElement>('[data-pdf-page]'))
+                  : []
+              }
+              label="Unduh PDF"
+            />
+
             <button
               type="button"
               onClick={() => window.print()}
@@ -152,7 +170,7 @@ export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
       )}
 
       {/* Denah Pages */}
-      <div className="space-y-6">
+      <div ref={pagesRef} className="space-y-6">
         {roomsToRender.map((roomNo, pageIdx) => {
           const roomStudents = studentsByRoom.get(roomNo) ?? [];
           const totalDesks = Math.max(20, Math.ceil(roomStudents.length / 2));
@@ -161,6 +179,7 @@ export const SeatingPlanView: React.FC<SeatingPlanViewProps> = ({
           return (
             <div
               key={roomNo}
+              data-pdf-page="true"
               className={`print-only-container bg-white border border-slate-200 rounded-xl p-6 max-w-5xl mx-auto ${
                 pageIdx < roomsToRender.length - 1 ? 'print-page-break' : ''
               }`}

@@ -52,6 +52,7 @@ service cloud.firestore {
         'examDays',
         'supervisorSchedule',
         'rules',
+        'proposal',
         'createdAt',
         'updatedAt'
       ])
@@ -78,6 +79,10 @@ service cloud.firestore {
       && data.supervisorSchedule is map
       && data.rules is list
       && data.rules.size() <= 50
+      && (!data.keys().hasAny(['proposal']) || (
+        data.proposal is map
+        && (!data.proposal.keys().hasAny(['budgetItems']) || (data.proposal.budgetItems is list && data.proposal.budgetItems.size() <= 100))
+      ))
       && data.createdAt is timestamp
       && data.updatedAt is timestamp;
     }
@@ -130,7 +135,10 @@ service cloud.firestore {
     }
 
     match /workspaces/{workspaceId} {
-      allow get: if isValidId(workspaceId) && isOwner(existing().ownerId);
+      allow get: if isValidId(workspaceId)
+        && isVerifiedUser()
+        && request.auth.uid == workspaceId
+        && (resource == null || existing().ownerId == request.auth.uid);
       allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
 
       allow create: if isVerifiedUser()
@@ -154,6 +162,7 @@ service cloud.firestore {
           'examDays',
           'supervisorSchedule',
           'rules',
+          'proposal',
           'updatedAt'
         ]);
 
@@ -162,11 +171,14 @@ service cloud.firestore {
       match /students/{studentId} {
         allow get: if isValidId(workspaceId)
           && isValidId(studentId)
-          && isOwner(existing().ownerId)
+          && isVerifiedUser()
+          && request.auth.uid == workspaceId
+          && (resource == null || existing().ownerId == request.auth.uid)
           && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
 
         allow list: if isValidId(workspaceId)
           && isVerifiedUser()
+          && workspaceId == request.auth.uid
           && existing().ownerId == request.auth.uid;
 
         allow create: if isVerifiedUser()

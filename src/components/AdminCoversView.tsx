@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { SchoolIdentity } from '../types/exam';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import {
   PrintOrientation,
   PrintOrientationToggle,
@@ -26,6 +27,10 @@ type CoverKey =
 export const AdminCoversView: React.FC<AdminCoversViewProps> = ({ school, onUpdateSchool }) => {
   const [selected, setSelected] = useState<CoverKey>('harap-tenang');
   const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
+  const pagesRef = useRef<HTMLDivElement>(null);
+
+  const slug =
+    school.singkatanUjian?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'ujian';
 
   const coverDefs: {
     key: 'hadir-pengawas' | 'hadir-peserta' | 'hadir-panitia' | 'panduan';
@@ -182,6 +187,18 @@ export const AdminCoversView: React.FC<AdminCoversViewProps> = ({ school, onUpda
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0">
               <PrintOrientationToggle value={orientation} onChange={setOrientation} />
+              <PdfDownloadButton
+                filename={`administrasi-${selected}-${slug}`}
+                orientation={orientation}
+                paperSize="A4"
+                marginMm={6}
+                getPageElements={() =>
+                  pagesRef.current
+                    ? Array.from(pagesRef.current.querySelectorAll<HTMLElement>('[data-pdf-page]'))
+                    : []
+                }
+                label="Unduh PDF"
+              />
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -220,27 +237,27 @@ export const AdminCoversView: React.FC<AdminCoversViewProps> = ({ school, onUpda
         </div>
       </section>
 
-      <div className="space-y-6">
+      <div ref={pagesRef} className="space-y-6">
         {selected === 'semua' ? (
           <>
-            <div className="print-only-container print-page-break">
+            <div data-pdf-page="true" className="print-only-container print-page-break">
               <QuietExamPoster school={school} orientation={orientation} />
             </div>
             {coverDefs.map((c) => (
-              <div key={c.key} className="print-only-container print-page-break">
+              <div key={c.key} data-pdf-page="true" className="print-only-container print-page-break">
                 {renderCover(c.title, c.isGuide)}
               </div>
             ))}
-            <div className="print-only-container">{renderPreface()}</div>
+            <div data-pdf-page="true" className="print-only-container">{renderPreface()}</div>
           </>
         ) : selected === 'harap-tenang' ? (
-          <div className="print-only-container">
+          <div data-pdf-page="true" className="print-only-container">
             <QuietExamPoster school={school} orientation={orientation} />
           </div>
         ) : selected === 'kata-pengantar' ? (
-          <div className="print-only-container">{renderPreface()}</div>
+          <div data-pdf-page="true" className="print-only-container">{renderPreface()}</div>
         ) : (
-          <div className="print-only-container">
+          <div data-pdf-page="true" className="print-only-container">
             {(() => {
               const found = coverDefs.find((c) => c.key === selected) || coverDefs[0];
               return renderCover(found.title, found.isGuide);

@@ -140,8 +140,91 @@ export function formatIndonesianDate(isoDate: string): {
 }
 
 export function getEffectiveRoomCount(students: Student[], configuredRooms: number): number {
+  if (configuredRooms && configuredRooms >= 1) {
+    return Math.min(200, Math.max(1, Math.round(configuredRooms)));
+  }
   const maxFromStudents = students.reduce((max, s) => Math.max(max, s.ruang || 1), 0);
-  return Math.max(1, configuredRooms, maxFromStudents);
+  return Math.max(1, maxFromStudents);
+}
+
+export function rebalanceStudentsToRooms(
+  students: Student[],
+  targetRoomCount: number,
+  reassignAll = false
+): Student[] {
+  const safeRooms = Math.min(200, Math.max(1, Math.round(targetRoomCount)));
+  if (students.length === 0) return students;
+
+  if (reassignAll) {
+    const baseSize = Math.floor(students.length / safeRooms);
+    const remainder = students.length % safeRooms;
+    let cursor = 0;
+    const updated: Student[] = [];
+    for (let r = 1; r <= safeRooms; r++) {
+      const targetForRoom = baseSize + (r <= remainder ? 1 : 0);
+      for (let i = 0; i < targetForRoom && cursor < students.length; i++) {
+        updated.push({ ...students[cursor++], ruang: r });
+      }
+    }
+    return updated;
+  }
+
+  let overflowCursor = 0;
+  return students.map((st) => {
+    if (st.ruang >= 1 && st.ruang <= safeRooms) return st;
+    const nextRoom = (overflowCursor % safeRooms) + 1;
+    overflowCursor++;
+    return { ...st, ruang: nextRoom };
+  });
+}
+
+export function resizeExamDays(
+  currentDays: ExamDay[],
+  targetCount: number,
+  tracks: string[],
+  fallbackStartDate = '2026-06-02'
+): ExamDay[] {
+  const safeCount = Math.min(30, Math.max(1, Math.round(targetCount)));
+  if (safeCount === currentDays.length) return currentDays;
+  if (safeCount < currentDays.length) {
+    return currentDays.slice(0, safeCount);
+  }
+
+  const next = [...currentDays];
+  const emptySubjects: Record<string, string> = {};
+  (tracks.length > 0 ? tracks : ['UMUM']).forEach((t) => {
+    emptySubjects[t] = '';
+  });
+
+  while (next.length < safeCount) {
+    const prevDateStr = next[next.length - 1]?.date || fallbackStartDate;
+    const baseDate = new Date(prevDateStr);
+    if (isNaN(baseDate.getTime())) {
+      baseDate.setTime(Date.now());
+    }
+    baseDate.setDate(baseDate.getDate() + 1);
+    const nextIso = baseDate.toISOString().slice(0, 10);
+    const dayId = `d-${Date.now()}-${next.length + 1}`;
+    next.push({
+      id: dayId,
+      date: nextIso,
+      sessions: [
+        { id: `${dayId}-s1`, jamKe: 1, waktu: '07.00 - 08.30', subjects: { ...emptySubjects } },
+        { id: `${dayId}-s2`, jamKe: 2, waktu: '08.45 - 10.15', subjects: { ...emptySubjects } },
+      ],
+    });
+  }
+  return next;
+}
+
+export function formatRupiah(amount: number): string {
+  const safe = Math.round(Number(amount) || 0);
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(safe);
 }
 
 export function getRoomStats(students: Student[], roomCount: number) {
@@ -256,9 +339,6 @@ export function autoGenerateSupervisorSchedule(
   const result: SupervisorScheduleMap = {};
   if (supervisors.length === 0 || roomCount <= 0) return result;
 
-  const codes = supervisors.map((s) => s.code);
-  const shiftCounts = new Map<number, number>(codes.map((c) => [c, 0]));
-
   // Deterministic-friendly pseudo-random helper for fair shuffling
   let seed = shuffleSeed % 2147483647;
   if (seed <= 0) seed += 2147483646;
@@ -267,32 +347,105 @@ export function autoGenerateSupervisorSchedule(
     return (seed - 1) / 2147483646;
   };
 
+  // Collect active sessions
+  const activeEntries: { dayId: string; sessionId: string }[] = [];
   for (const day of examDays) {
     for (const session of day.sessions) {
       const hasSubject = Object.values(session.subjects).some(
         (v) => v && v.trim() !== '' && v.trim() !== '-'
       );
-      if (!hasSubject) continue;
+      if (hasSubject) {
+        activeEntries.push({ dayId: day.id, sessionId: session.id });
+      }
+    }
+  }
 
-      const key = `${day.id}__${session.id}`;
-      const row: Record<number, number> = {};
+  const totalSessions = activeEntries.length;
+  if (totalSessions === 0) return result;
 
-      // Sort supervisors by fewest shifts so far, with random tie-breaking
-      const pool = [...codes].sort((a, b) => {
-        const diff = (shiftCounts.get(a) ?? 0) - (shiftCounts.get(b) ?? 0);
-        if (diff !== 0) return diff;
-        return nextRand() - 0.5;
-      });
+  const totalSlots = totalSessions * roomCount;
 
-      for (let room = 1; room <= roomCount; room++) {
-        // If supervisors < roomCount, wrap around gracefully (though ideally supervisors >= roomCount)
-        const chosenCode = pool[(room - 1) % pool.length];
-        row[room] = chosenCode;
-        shiftCounts.set(chosenCode, (shiftCounts.get(chosenCode) ?? 0) + 1);
+  // Compute effective target per supervisor:
+  // Explicit targetShifts (> 0) are honored; remaining slots are distributed evenly across "Auto" teachers.
+  const explicitSum = supervisors.reduce(
+    (sum, s) => sum + (s.targetShifts && s.targetShifts > 0 ? s.targetShifts : 0),
+    0
+  );
+  const autoSupervisors = supervisors.filter((s) => !s.targetShifts || s.targetShifts <= 0);
+  const autoPool = Math.max(0, totalSlots - explicitSum);
+  const autoBase = autoSupervisors.length > 0 ? Math.floor(autoPool / autoSupervisors.length) : 0;
+  const autoRem = autoSupervisors.length > 0 ? autoPool % autoSupervisors.length : 0;
+
+  // Shuffle auto supervisors once so remainder +1 goes to random teachers each shuffle
+  const shuffledAutoIds = new Set(
+    [...autoSupervisors]
+      .sort(() => nextRand() - 0.5)
+      .slice(0, autoRem)
+      .map((s) => s.id)
+  );
+
+  const effectiveTarget = new Map<number, number>();
+  const isExplicit = new Map<number, boolean>();
+  for (const sup of supervisors) {
+    if (sup.targetShifts && sup.targetShifts > 0) {
+      effectiveTarget.set(sup.code, sup.targetShifts);
+      isExplicit.set(sup.code, true);
+    } else {
+      effectiveTarget.set(sup.code, autoBase + (shuffledAutoIds.has(sup.id) ? 1 : 0));
+      isExplicit.set(sup.code, false);
+    }
+  }
+
+  const codes = supervisors.map((s) => s.code);
+  const shiftCounts = new Map<number, number>(codes.map((c) => [c, 0]));
+
+  // Assign a slight random jitter per supervisor for natural spread across sessions
+  const sessionOrder = activeEntries.map((entry, idx) => ({ ...entry, idx }));
+
+  for (let sIdx = 0; sIdx < sessionOrder.length; sIdx++) {
+    const { dayId, sessionId } = sessionOrder[sIdx];
+    const sessionsLeft = totalSessions - sIdx;
+    const key = `${dayId}__${sessionId}`;
+    const row: Record<number, number> = {};
+
+    const scored = codes.map((code) => {
+      const assigned = shiftCounts.get(code) ?? 0;
+      const target = effectiveTarget.get(code) ?? 0;
+      const remaining = target - assigned;
+      const explicit = isExplicit.get(code) ?? false;
+
+      let tier = 2; // 0 = urgent must-schedule, 1 = has remaining quota, 2 = quota filled / overflow
+      let priority = 0;
+
+      if (remaining > 0) {
+        if (remaining >= sessionsLeft) {
+          tier = 0;
+          priority = remaining + (explicit ? 0.5 : 0) + nextRand() * 0.15;
+        } else {
+          tier = 1;
+          priority = remaining / sessionsLeft + nextRand() * 0.35;
+        }
+      } else {
+        tier = 2;
+        // Prefer teachers who exceeded least (and prefer auto over explicit if overflow needed)
+        priority = -(assigned - target) - (explicit ? 10 : 0) + nextRand() * 0.2;
       }
 
-      result[key] = row;
+      return { code, tier, priority };
+    });
+
+    scored.sort((a, b) => {
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      return b.priority - a.priority;
+    });
+
+    for (let room = 1; room <= roomCount; room++) {
+      const chosenCode = scored[(room - 1) % scored.length].code;
+      row[room] = chosenCode;
+      shiftCounts.set(chosenCode, (shiftCounts.get(chosenCode) ?? 0) + 1);
     }
+
+    result[key] = row;
   }
 
   return result;
